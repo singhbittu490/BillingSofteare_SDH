@@ -2,21 +2,29 @@
 
 import React, { useState } from 'react';
 import { Expense } from '@/lib/types';
-import { X, Receipt } from 'lucide-react';
+import { X, Receipt, Trash2 } from 'lucide-react';
 import { generateUniqueId, getTodayDateString } from '@/lib/utils';
 
 interface AddExpenseModalProps {
+  initialExpense?: Expense;
   onClose: () => void;
   onSave: (expense: Expense) => void;
+  onDelete?: (expenseId: number) => void;
 }
 
-export function AddExpenseModal({ onClose, onSave }: AddExpenseModalProps) {
-  const [expenseDate, setExpenseDate] = useState(() => getTodayDateString());
-  const [category, setCategory] = useState('Rent');
-  const [amount, setAmount] = useState<number>(0);
-  const [paymentMethod, setPaymentMethod] = useState('UPI');
-  const [referenceNumber, setReferenceNumber] = useState('');
-  const [description, setDescription] = useState('');
+export function AddExpenseModal({
+  initialExpense,
+  onClose,
+  onSave,
+  onDelete,
+}: AddExpenseModalProps) {
+  const isEdit = Boolean(initialExpense);
+  const [expenseDate, setExpenseDate] = useState(() => initialExpense?.expenseDate || getTodayDateString());
+  const [category, setCategory] = useState(initialExpense?.category || 'Rent');
+  const [amount, setAmount] = useState<number>(initialExpense?.amount || 0);
+  const [paymentMethod, setPaymentMethod] = useState(initialExpense?.paymentMethod || 'UPI');
+  const [referenceNumber, setReferenceNumber] = useState(initialExpense?.referenceNumber || '');
+  const [description, setDescription] = useState(initialExpense?.description || '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -25,8 +33,8 @@ export function AddExpenseModal({ onClose, onSave }: AddExpenseModalProps) {
       return;
     }
 
-    const newExpense: Expense = {
-      id: generateUniqueId(),
+    const savedExpense: Expense = {
+      id: initialExpense ? initialExpense.id : generateUniqueId(),
       expenseDate,
       category,
       amount: Number(amount) || 0,
@@ -35,7 +43,19 @@ export function AddExpenseModal({ onClose, onSave }: AddExpenseModalProps) {
       description: description.trim(),
     };
 
-    onSave(newExpense);
+    onSave(savedExpense);
+  };
+
+  const handleDelete = () => {
+    if (!initialExpense || !onDelete) return;
+    if (
+      confirm(
+        `Are you sure you want to delete expense "${initialExpense.description}" of ₹${initialExpense.amount}? This action cannot be undone.`
+      )
+    ) {
+      onDelete(initialExpense.id);
+      onClose();
+    }
   };
 
   return (
@@ -43,8 +63,10 @@ export function AddExpenseModal({ onClose, onSave }: AddExpenseModalProps) {
       <div className="w-full max-w-md bg-white rounded-xl shadow-2xl overflow-hidden">
         <div className="flex justify-between items-center px-6 py-4 bg-slate-900 text-white">
           <div className="flex items-center gap-2">
-            <Receipt className="w-4 h-4 text-blue-400" />
-            <h3 className="font-bold text-base">Record Operational Expense</h3>
+            <Receipt className="w-4 h-4 text-rose-400" />
+            <h3 className="font-bold text-base">
+              {isEdit ? 'Edit Operational Expense (खर्च संपादित करें)' : 'Record Operational Expense'}
+            </h3>
           </div>
           <button onClick={onClose} className="p-1 text-slate-400 hover:text-white rounded">
             <X className="w-4 h-4" />
@@ -135,20 +157,35 @@ export function AddExpenseModal({ onClose, onSave }: AddExpenseModalProps) {
             </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded shadow"
-            >
-              Save Expense
-            </button>
+          <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+            {isEdit && onDelete ? (
+              <button
+                type="button"
+                onClick={handleDelete}
+                className="px-3 py-2 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded border border-rose-200 flex items-center gap-1 transition-colors"
+                title="Delete this expense record (खर्च हटाएं)"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete (हटाएं)</span>
+              </button>
+            ) : (
+              <div />
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 text-xs font-bold text-white bg-rose-600 hover:bg-rose-700 rounded shadow"
+              >
+                {isEdit ? 'Update Expense' : 'Save Expense'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

@@ -139,6 +139,7 @@ export default function SmartBillApp() {
   const [adjustingProduct, setAdjustingProduct] = useState<Product | null>(null);
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
+  const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isAddingPurchase, setIsAddingPurchase] = useState(false);
   const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
   const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
@@ -318,6 +319,34 @@ export default function SmartBillApp() {
         })
       );
       setPurchases((prev) => prev.filter((p) => p.id !== purchaseId));
+    }
+  };
+
+  // Expense CRUD Handlers
+  const handleSaveExpense = (savedExp: Expense) => {
+    setExpenses((prev) => {
+      const exists = prev.some((e) => e.id === savedExp.id);
+      if (exists) {
+        return prev.map((e) => (e.id === savedExp.id ? savedExp : e));
+      }
+      return [savedExp, ...prev];
+    });
+    setIsAddingExpense(false);
+    setEditingExpense(null);
+  };
+
+  const handleDeleteExpense = (expenseId: number) => {
+    const exp = expenses.find((e) => e.id === expenseId);
+    if (!exp) return;
+    if (
+      confirm(
+        `Are you sure you want to delete expense "${exp.description}" of ₹${exp.amount}? This action cannot be undone.`
+      )
+    ) {
+      setExpenses((prev) => prev.filter((e) => e.id !== expenseId));
+      if (editingExpense?.id === expenseId) {
+        setEditingExpense(null);
+      }
     }
   };
 
@@ -1106,10 +1135,11 @@ export default function SmartBillApp() {
                             </button>
                             <button
                               onClick={() => handleDeleteProduct(prod.id)}
-                              className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors inline-flex items-center"
-                              title="Delete Product (उत्पाद हटाएं)"
+                              className="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded font-semibold text-xs border border-rose-200 inline-flex items-center transition-colors"
+                              title="Delete Product & Stock (उत्पाद हटाएं)"
                             >
-                              <Trash2 className="w-3.5 h-3.5" />
+                              <Trash2 className="w-3.5 h-3.5 mr-1" />
+                              Delete
                             </button>
                           </td>
                         </tr>
@@ -1284,10 +1314,11 @@ export default function SmartBillApp() {
                           </button>
                           <button
                             onClick={() => handleDeletePurchase(pur.id)}
-                            className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors inline-flex items-center"
+                            className="px-2 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded text-xs font-semibold border border-rose-200 inline-flex items-center transition-colors"
                             title="Delete Purchase Bill (खरीद बिल हटाएं)"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3.5 h-3.5 mr-1" />
+                            Delete
                           </button>
                         </td>
                       </tr>
@@ -1330,6 +1361,7 @@ export default function SmartBillApp() {
                       <th className="p-3">Payment Method</th>
                       <th className="p-3">Reference / Voucher</th>
                       <th className="p-3 text-right">Amount (₹)</th>
+                      <th className="p-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1346,6 +1378,24 @@ export default function SmartBillApp() {
                         <td className="p-3 font-mono text-slate-500">{exp.referenceNumber || '-'}</td>
                         <td className="p-3 text-right font-bold text-rose-600 text-sm">
                           {formatINR(exp.amount)}
+                        </td>
+                        <td className="p-3 text-right space-x-1 whitespace-nowrap">
+                          <button
+                            onClick={() => setEditingExpense(exp)}
+                            className="px-2 py-1 bg-amber-50 text-amber-800 hover:bg-amber-100 rounded text-xs font-semibold border border-amber-300 inline-flex items-center"
+                            title="Edit Expense (खर्च संपादित करें)"
+                          >
+                            <Pencil className="w-3.5 h-3.5 mr-1" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteExpense(exp.id)}
+                            className="px-2 py-1 bg-rose-50 text-rose-700 hover:bg-rose-100 rounded text-xs font-semibold border border-rose-200 inline-flex items-center transition-colors"
+                            title="Delete Expense (खर्च हटाएं)"
+                          >
+                            <Trash2 className="w-3.5 h-3.5 mr-1" />
+                            Delete
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -1565,6 +1615,7 @@ export default function SmartBillApp() {
             setEditingProduct(null);
           }}
           onSave={handleSaveProduct}
+          onDelete={handleDeleteProduct}
         />
       )}
 
@@ -1578,6 +1629,7 @@ export default function SmartBillApp() {
             );
             setAdjustingProduct(null);
           }}
+          onDeleteProduct={handleDeleteProduct}
         />
       )}
 
@@ -1591,13 +1643,15 @@ export default function SmartBillApp() {
         />
       )}
 
-      {isAddingExpense && (
+      {(isAddingExpense || editingExpense) && (
         <AddExpenseModal
-          onClose={() => setIsAddingExpense(false)}
-          onSave={(newExp) => {
-            setExpenses([newExp, ...expenses]);
+          initialExpense={editingExpense || undefined}
+          onClose={() => {
             setIsAddingExpense(false);
+            setEditingExpense(null);
           }}
+          onSave={handleSaveExpense}
+          onDelete={handleDeleteExpense}
         />
       )}
 
@@ -1612,6 +1666,7 @@ export default function SmartBillApp() {
             setEditingPurchase(null);
           }}
           onSave={handleSavePurchase}
+          onDelete={handleDeletePurchase}
         />
       )}
 

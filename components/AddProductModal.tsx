@@ -2,16 +2,17 @@
 
 import React, { useState } from 'react';
 import { Product } from '@/lib/types';
-import { X, PackagePlus } from 'lucide-react';
+import { X, PackagePlus, Trash2 } from 'lucide-react';
 import { generateUniqueId } from '@/lib/utils';
 
 interface AddProductModalProps {
   initialProduct?: Product | null;
   onClose: () => void;
   onSave: (product: Product) => void;
+  onDelete?: (productId: number) => void;
 }
 
-export function AddProductModal({ initialProduct, onClose, onSave }: AddProductModalProps) {
+export function AddProductModal({ initialProduct, onClose, onSave, onDelete }: AddProductModalProps) {
   const [name, setName] = useState(initialProduct?.name || '');
   const [sku, setSku] = useState(initialProduct?.sku || '');
   const [category, setCategory] = useState(initialProduct?.category || 'Electronics & Hardware');
@@ -207,20 +208,44 @@ export function AddProductModal({ initialProduct, onClose, onSave }: AddProductM
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-3 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded shadow"
-            >
-              {isEdit ? 'Update Product (अपडेट करें)' : 'Save Product (सेव करें)'}
-            </button>
+          <div className="flex items-center justify-between pt-3 border-t border-slate-200">
+            {isEdit && onDelete && initialProduct ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    confirm(
+                      `Are you sure you want to delete "${initialProduct.name}" (SKU: ${initialProduct.sku})? This action cannot be undone.`
+                    )
+                  ) {
+                    onDelete(initialProduct.id);
+                    onClose();
+                  }
+                }}
+                className="px-3 py-2 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded border border-rose-200 flex items-center gap-1 transition-colors"
+                title="Delete Product (उत्पाद हटाएं)"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete (हटाएं)</span>
+              </button>
+            ) : (
+              <div />
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded shadow"
+              >
+                {isEdit ? 'Update Product (अपडेट करें)' : 'Save Product (सेव करें)'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

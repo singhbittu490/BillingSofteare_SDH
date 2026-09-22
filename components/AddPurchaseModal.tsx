@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { Product, Purchase, Supplier } from '@/lib/types';
-import { X, ShoppingBag } from 'lucide-react';
+import { X, ShoppingBag, Trash2 } from 'lucide-react';
 import { generateUniqueId, getTodayDateString } from '@/lib/utils';
 
 interface AddPurchaseModalProps {
@@ -12,6 +12,7 @@ interface AddPurchaseModalProps {
   initialPurchase?: Purchase | null;
   onClose: () => void;
   onSave: (purchase: Purchase, updatedProducts: Product[]) => void;
+  onDelete?: (purchaseId: number) => void;
 }
 
 export function AddPurchaseModal({
@@ -21,6 +22,7 @@ export function AddPurchaseModal({
   initialPurchase,
   onClose,
   onSave,
+  onDelete,
 }: AddPurchaseModalProps) {
   const isEdit = Boolean(initialPurchase);
   const firstItem = initialPurchase?.items?.[0];
@@ -280,20 +282,44 @@ export function AddPurchaseModal({
             />
           </div>
 
-          <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded shadow"
-            >
-              {isEdit ? 'Update Purchase Bill (अपडेट करें)' : 'Save Purchase & Add Stock'}
-            </button>
+          <div className="flex items-center justify-between pt-2 border-t border-slate-200">
+            {isEdit && onDelete && initialPurchase ? (
+              <button
+                type="button"
+                onClick={() => {
+                  if (
+                    confirm(
+                      `Cancel and delete Purchase Bill ${initialPurchase.purchaseNumber}? Inventory stock will be deducted accordingly.`
+                    )
+                  ) {
+                    onDelete(initialPurchase.id);
+                    onClose();
+                  }
+                }}
+                className="px-3 py-2 text-xs font-semibold text-rose-700 bg-rose-50 hover:bg-rose-100 rounded border border-rose-200 flex items-center gap-1 transition-colors"
+                title="Delete Purchase Bill (खरीद बिल हटाएं)"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Bill (हटाएं)</span>
+              </button>
+            ) : (
+              <div />
+            )}
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={onClose}
+                className="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded shadow"
+              >
+                {isEdit ? 'Update Purchase Bill (अपडेट करें)' : 'Save Purchase & Add Stock'}
+              </button>
+            </div>
           </div>
         </form>
       </div>

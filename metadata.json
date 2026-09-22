@@ -1,0 +1,8 @@
+{
+  "name": "SmartBill - GST Billing & Invoicing Software",
+  "description": "Production-ready web-based Billing & GST Invoice Management System for Hostinger Shared Hosting with complete customer, supplier, inventory, invoice, and GST tax management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

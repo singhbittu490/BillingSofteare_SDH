@@ -1,0 +1,543 @@
+/**
+ * SmartBill - Modern SaaS Accounting CSS
+ * Designed for High Productivity, Readability, and Clean Aesthetics
+ */
+
+:root {
+  --sb-primary: #2563eb;
+  --sb-primary-hover: #1d4ed8;
+  --sb-primary-light: #eff6ff;
+  --sb-secondary: #475569;
+  --sb-success: #059669;
+  --sb-success-light: #ecfdf5;
+  --sb-warning: #d97706;
+  --sb-warning-light: #fffbeb;
+  --sb-danger: #dc2626;
+  --sb-danger-light: #fef2f2;
+  --sb-info: #0891b2;
+  --sb-dark: #0f172a;
+  --sb-slate: #1e293b;
+  --sb-sidebar-bg: #0f172a;
+  --sb-sidebar-text: #94a3b8;
+  --sb-sidebar-active: #3b82f6;
+  --sb-border: #e2e8f0;
+  --sb-bg: #f8fafc;
+  --sb-card-bg: #ffffff;
+  --sb-text: #1e293b;
+  --sb-text-muted: #64748b;
+  --sb-sidebar-width: 260px;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  background-color: var(--sb-bg);
+  color: var(--sb-text);
+  min-height: 100vh;
+  margin: 0;
+  padding: 0;
+  font-size: 0.925rem;
+}
+
+/* App Layout Wrapper */
+.sb-wrapper {
+  display: flex;
+  min-height: 100vh;
+  position: relative;
+}
+
+/* Sidebar Styles */
+.sb-sidebar {
+  width: var(--sb-sidebar-width);
+  background-color: var(--sb-sidebar-bg);
+  color: var(--sb-sidebar-text);
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1040;
+  transition: transform 0.3s ease-in-out;
+  overflow-y: auto;
+  border-right: 1px solid #1e293b;
+}
+
+.sb-sidebar-brand {
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  color: #ffffff;
+  text-decoration: none;
+  border-bottom: 1px solid #1e293b;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.sb-sidebar-brand span.text-primary {
+  color: #3b82f6 !important;
+}
+
+.sb-sidebar-nav {
+  list-style: none;
+  padding: 0.75rem 0.5rem;
+  margin: 0;
+  flex-grow: 1;
+}
+
+.sb-nav-category {
+  font-size: 0.685rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #64748b;
+  padding: 0.85rem 1rem 0.35rem;
+}
+
+.sb-nav-link {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.65rem 1rem;
+  color: #94a3b8;
+  text-decoration: none;
+  font-weight: 500;
+  border-radius: 0.5rem;
+  transition: all 0.15s ease;
+  margin-bottom: 0.15rem;
+}
+
+.sb-nav-link i {
+  width: 1.25rem;
+  text-align: center;
+  font-size: 1rem;
+  color: #64748b;
+  transition: color 0.15s ease;
+}
+
+.sb-nav-link:hover {
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+.sb-nav-link:hover i {
+  color: #93c5fd;
+}
+
+.sb-nav-link.active {
+  color: #ffffff;
+  background-color: #2563eb;
+  font-weight: 600;
+}
+
+.sb-nav-link.active i {
+  color: #ffffff;
+}
+
+.sb-sidebar-footer {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid #1e293b;
+  background-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Main Content Area */
+.sb-main {
+  margin-left: var(--sb-sidebar-width);
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  transition: margin-left 0.3s ease;
+}
+
+/* Top Navbar */
+.sb-navbar {
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--sb-border);
+  padding: 0.75rem 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+}
+
+.sb-search-form {
+  position: relative;
+  width: 320px;
+}
+
+.sb-search-form input {
+  padding-left: 2.25rem;
+  border-radius: 20px;
+  background-color: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  font-size: 0.875rem;
+}
+
+.sb-search-form input:focus {
+  background-color: #ffffff;
+  border-color: var(--sb-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.sb-search-form i {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+}
+
+/* Search Dropdown / Autocomplete Results */
+.sb-search-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #ffffff;
+  border: 1px solid var(--sb-border);
+  border-radius: 0.5rem;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  margin-top: 0.5rem;
+  z-index: 1050;
+  max-height: 380px;
+  overflow-y: auto;
+  display: none;
+}
+
+.sb-search-results.show {
+  display: block;
+}
+
+.sb-search-item {
+  padding: 0.65rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  border-bottom: 1px solid #f1f5f9;
+  text-decoration: none;
+  color: var(--sb-text);
+  font-size: 0.85rem;
+}
+
+.sb-search-item:hover {
+  background-color: #f8fafc;
+}
+
+/* Dashboard Metric Cards */
+.sb-stat-card {
+  background: #ffffff;
+  border-radius: 0.75rem;
+  border: 1px solid var(--sb-border);
+  padding: 1.25rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.sb-stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 12px -2px rgba(0, 0, 0, 0.08);
+}
+
+.sb-stat-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+}
+
+.sb-stat-title {
+  font-size: 0.775rem;
+  font-weight: 600;
+  color: var(--sb-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.sb-stat-value {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--sb-dark);
+  line-height: 1.2;
+}
+
+/* Cards & Containers */
+.card {
+  border: 1px solid var(--sb-border);
+  border-radius: 0.75rem;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+}
+
+.card-header {
+  background-color: #ffffff;
+  border-bottom: 1px solid var(--sb-border);
+  font-weight: 600;
+  padding: 1rem 1.25rem;
+}
+
+/* Tables */
+.table th {
+  background-color: #f8fafc;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--sb-text-muted);
+  border-bottom: 1px solid var(--sb-border);
+  padding: 0.85rem 1rem;
+}
+
+.table td {
+  padding: 0.85rem 1rem;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--sb-border);
+}
+
+.table-hover tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+/* Badges */
+.badge-status-paid {
+  background-color: #dcfce7;
+  color: #15803d;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  border-radius: 20px;
+}
+
+.badge-status-partially {
+  background-color: #fef3c7;
+  color: #b45309;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  border-radius: 20px;
+}
+
+.badge-status-unpaid {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  font-weight: 600;
+  padding: 0.35rem 0.65rem;
+  border-radius: 20px;
+}
+
+/* Form Styles */
+.form-label {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #334155;
+  margin-bottom: 0.35rem;
+}
+
+.form-control, .form-select {
+  border-color: #cbd5e1;
+  border-radius: 0.5rem;
+  font-size: 0.9rem;
+  padding: 0.55rem 0.85rem;
+}
+
+.form-control:focus, .form-select:focus {
+  border-color: var(--sb-primary);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+/* Buttons */
+.btn {
+  font-weight: 500;
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  transition: all 0.15s ease;
+}
+
+.btn-primary {
+  background-color: var(--sb-primary);
+  border-color: var(--sb-primary);
+}
+
+.btn-primary:hover {
+  background-color: var(--sb-primary-hover);
+  border-color: var(--sb-primary-hover);
+}
+
+/* Invoice Creation Layout */
+.invoice-items-table th {
+  background-color: #f1f5f9;
+}
+
+.invoice-items-table input.form-control,
+.invoice-items-table select.form-select {
+  font-size: 0.85rem;
+  padding: 0.4rem 0.55rem;
+}
+
+/* Printable A4 GST Tax Invoice */
+.invoice-paper {
+  background: #ffffff;
+  width: 100%;
+  max-width: 850px;
+  margin: 1.5rem auto;
+  padding: 2.5rem;
+  border: 1px solid #cbd5e1;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+  font-size: 0.9rem;
+  color: #0f172a;
+}
+
+.invoice-header-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.invoice-badge-tax {
+  border: 1.5px solid #0f172a;
+  padding: 0.25rem 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  display: inline-block;
+}
+
+.invoice-box {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.35rem;
+  padding: 0.85rem;
+  height: 100%;
+}
+
+.invoice-box-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-bottom: 0.4rem;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 0.25rem;
+}
+
+.invoice-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.invoice-table th {
+  background-color: #f8fafc;
+  border: 1px solid #cbd5e1;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.785rem;
+  text-align: left;
+}
+
+.invoice-table td {
+  border: 1px solid #cbd5e1;
+  padding: 0.55rem 0.65rem;
+  font-size: 0.825rem;
+}
+
+.invoice-total-card {
+  border: 1px solid #cbd5e1;
+  border-radius: 0.35rem;
+}
+
+.invoice-total-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.85rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.invoice-total-row.grand-total {
+  background-color: #f8fafc;
+  font-weight: 700;
+  font-size: 1rem;
+  border-bottom: none;
+}
+
+/* Media Print Styles for pure A4 print/PDF */
+@media print {
+  body {
+    background: #ffffff !important;
+    font-size: 11pt !important;
+    color: #000000 !important;
+  }
+
+  .sb-sidebar,
+  .sb-navbar,
+  .no-print,
+  .btn,
+  .alert {
+    display: none !important;
+  }
+
+  .sb-main {
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+
+  .invoice-paper {
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm 12mm 15mm;
+  }
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 991.98px) {
+  .sb-sidebar {
+    transform: translateX(-100%);
+  }
+
+  .sb-sidebar.show {
+    transform: translateX(0);
+  }
+
+  .sb-main {
+    margin-left: 0;
+  }
+
+  .sb-search-form {
+    width: 200px;
+  }
+}
+
+/* Mobile Sidebar Overlay */
+.sb-sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(2px);
+  z-index: 1030;
+}
+
+.sb-sidebar-overlay.show {
+  display: block;
+}

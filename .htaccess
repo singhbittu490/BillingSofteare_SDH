@@ -1,0 +1,21 @@
+# SmartBill - Hostinger Shared Hosting Apache Configuration
+Options -Indexes
+
+# Protect sensitive directories
+<FilesMatch "^\.">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+<Files "database.sql">
+    Order allow,deny
+    Deny from all
+</Files>
+
+# Ensure PHP UTF-8 encoding
+AddDefaultCharset UTF-8
+
+# Compression & Caching for fast page load
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/plain text/xml text/css application/javascript application/json
+</IfModule>

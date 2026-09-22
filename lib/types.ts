@@ -18,6 +18,7 @@ export interface CompanySettings {
   termsConditions: string;
   authorizedSignatory: string;
   logoUrl?: string;
+  licenseNo?: string;
 }
 
 export interface AuthUser {
@@ -27,6 +28,7 @@ export interface AuthUser {
   role: 'Owner' | 'Admin' | 'Accountant' | 'Sales Staff';
   phone?: string;
   lastLogin: string;
+  licenseNo?: string;
 }
 
 export interface Product {

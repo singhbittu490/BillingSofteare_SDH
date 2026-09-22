@@ -23,6 +23,7 @@ export const initialCompanySettings: CompanySettings = {
   upiId: 'smartbill@sbi',
   termsConditions: '1. Goods once sold will not be taken back or exchanged.\n2. Payments must be cleared within 15 days of invoice date.\n3. All disputes are subject to Mumbai Jurisdiction.',
   authorizedSignatory: 'For SmartBill Technologies Pvt Ltd',
+  licenseNo: 'SBS-LIC-2026-0001',
 };
 
 export const initialProducts: Product[] = [

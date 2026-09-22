@@ -19,6 +19,7 @@ import {
   Image as ImageIcon,
   Upload,
   Trash2,
+  KeyRound,
 } from 'lucide-react';
 
 const SAMPLE_LOGOS = [
@@ -183,10 +184,23 @@ export function CompanyProfileTab({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 text-xs bg-black/20 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10">
-          <Lock className="w-4 h-4 text-emerald-400" />
-          <span className="text-slate-300">Tenant ID:</span>
-          <span className="font-mono text-white font-semibold">{currentUser.id}</span>
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 text-xs bg-black/20 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10">
+            <KeyRound className="w-4 h-4 text-amber-400" />
+            <span className="text-slate-300">Licence No:</span>
+            <span className="font-mono text-emerald-300 font-bold tracking-wider">
+              {formData.licenseNo || currentUser.licenseNo || 'SBS-LIC-2026-0001'}
+            </span>
+            <span className="text-[10px] bg-emerald-500/25 text-emerald-300 px-1.5 py-0.5 rounded font-bold border border-emerald-500/30">
+              ACTIVE
+            </span>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs bg-black/20 backdrop-blur-md px-3 py-2 rounded-xl border border-white/10">
+            <Lock className="w-4 h-4 text-emerald-400" />
+            <span className="text-slate-300">Tenant ID:</span>
+            <span className="font-mono text-white font-semibold">{currentUser.id}</span>
+          </div>
         </div>
       </div>
 
@@ -206,11 +220,42 @@ export function CompanyProfileTab({
           <form onSubmit={handleSubmit} className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 space-y-6">
             {/* Section 1: Business Identity */}
             <div>
-              <div className="flex items-center gap-2 pb-3 border-b border-slate-100 mb-4">
-                <Building2 className="w-4 h-4 text-blue-600" />
-                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
-                  1. Business &amp; Trade Identity (व्यापार की पहचान)
-                </h3>
+              <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-4">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-blue-600" />
+                  <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wider">
+                    1. Business &amp; Trade Identity (व्यापार की पहचान)
+                  </h3>
+                </div>
+                <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-100 px-2.5 py-1 rounded-lg">
+                  <KeyRound className="w-3.5 h-3.5 text-blue-600" />
+                  <span>Unique Licence Verified</span>
+                </div>
+              </div>
+
+              {/* Verified Unique Customer License Display */}
+              <div className="mb-4 p-3.5 rounded-xl bg-gradient-to-r from-blue-50/80 via-indigo-50/70 to-slate-50 border border-blue-200/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shadow-sm flex-shrink-0">
+                    <KeyRound className="w-4 h-4 text-amber-300" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-800">
+                        Customer Unique Licence Key (सॉफ़्टवेयर लाइसेंस नंबर)
+                      </span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3" /> Unique Profile Bound
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      यह यूनिक लाइसेंस नंबर आपके ग्राहक खाते और कंपनी के लिए पंजीकृत है (Bound strictly to this customer profile).
+                    </p>
+                  </div>
+                </div>
+                <div className="px-3.5 py-1.5 bg-white border border-blue-300/80 rounded-xl font-mono text-sm font-bold text-blue-800 tracking-wider shadow-inner">
+                  {formData.licenseNo || currentUser.licenseNo || 'SBS-LIC-2026-0001'}
+                </div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

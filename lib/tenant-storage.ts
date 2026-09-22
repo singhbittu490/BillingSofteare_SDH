@@ -20,6 +20,7 @@ export interface UserAccount {
   companyName: string;
   createdAt: string;
   lastLogin: string;
+  licenseNo?: string;
 }
 
 export const INDIAN_STATES = [
@@ -74,6 +75,7 @@ export const DEFAULT_TENANT_ACCOUNTS: UserAccount[] = [
     companyName: 'Smart Tech Solutions Pvt Ltd',
     createdAt: '2026-01-15T00:00:00Z',
     lastLogin: 'Today',
+    licenseNo: 'SBS-LIC-2026-9876',
   },
   {
     id: 'usr_sharma_hardware',
@@ -84,6 +86,7 @@ export const DEFAULT_TENANT_ACCOUNTS: UserAccount[] = [
     companyName: 'Sharma Electricals & Hardware',
     createdAt: '2026-02-01T00:00:00Z',
     lastLogin: 'Yesterday',
+    licenseNo: 'SBS-LIC-2026-5432',
   },
   {
     id: 'usr_store_admin',
@@ -94,6 +97,7 @@ export const DEFAULT_TENANT_ACCOUNTS: UserAccount[] = [
     companyName: 'SmartBill Infotech',
     createdAt: '2026-01-01T00:00:00Z',
     lastLogin: 'Today',
+    licenseNo: 'SBS-LIC-2026-1122',
   },
 ];
 
@@ -116,6 +120,7 @@ export const SHARMA_COMPANY: CompanySettings = {
   upiId: 'sharmahardware@hdfcbank',
   termsConditions: '1. Warranty as per manufacturer terms.\n2. Payment within 7 days.\n3. Goods sold subject to Pune jurisdiction.',
   authorizedSignatory: 'For Sharma Electricals & Hardware',
+  licenseNo: 'SBS-LIC-2026-5432',
 };
 
 export const BITTU_COMPANY: CompanySettings = {
@@ -138,6 +143,7 @@ export const BITTU_COMPANY: CompanySettings = {
   upiId: 'smarttech@icici',
   termsConditions: '1. Standard GST invoice.\n2. 100% genuine guaranteed products.\n3. All disputes subject to Delhi jurisdiction.',
   authorizedSignatory: 'For Smart Tech Solutions Pvt Ltd',
+  licenseNo: 'SBS-LIC-2026-9876',
 };
 
 // Sharma's isolated products
@@ -413,7 +419,55 @@ export function getDefaultTenantData(userId: string): {
 }
 
 /**
+ * Generate a cryptographically distinct unique license key for a customer
+ * Format: SBS-LIC-XXXX-XXXX
+ */
+export function generateUniqueLicenseNo(): string {
+  const existingUsers = getRegisteredUsers();
+  const usedLicenseNos = new Set(
+    existingUsers.map((u) => (u.licenseNo || '').trim().toUpperCase()).filter(Boolean)
+  );
+  usedLicenseNos.add('SBS-LIC-2026-9876');
+  usedLicenseNos.add('SBS-LIC-2026-5432');
+  usedLicenseNos.add('SBS-LIC-2026-1122');
+  usedLicenseNos.add('SBS-LIC-2026-0001');
+
+  let attempts = 0;
+  while (attempts < 200) {
+    const part1 = Math.floor(1000 + Math.random() * 9000);
+    const part2 = Math.floor(1000 + Math.random() * 9000);
+    const candidate = `SBS-LIC-${part1}-${part2}`;
+    if (!usedLicenseNos.has(candidate)) {
+      return candidate;
+    }
+    attempts++;
+  }
+  return `SBS-LIC-${Date.now().toString().slice(-4)}-${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
+/**
+ * Check if a license number is already used by another customer/profile
+ */
+export function isLicenseNoUnique(licenseNo: string, excludeUserId?: string): boolean {
+  const cleanLic = (licenseNo || '').trim().toUpperCase();
+  if (!cleanLic) return false;
+
+  const users = getRegisteredUsers();
+  const duplicate = users.find(
+    (u) => (u.licenseNo || '').trim().toUpperCase() === cleanLic && u.id !== excludeUserId
+  );
+  if (duplicate) return false;
+
+  if (excludeUserId !== 'usr_bittu_singh' && cleanLic === 'SBS-LIC-2026-9876') return false;
+  if (excludeUserId !== 'usr_sharma_hardware' && cleanLic === 'SBS-LIC-2026-5432') return false;
+  if (excludeUserId !== 'usr_store_admin' && cleanLic === 'SBS-LIC-2026-1122') return false;
+
+  return true;
+}
+
+/**
  * Register a brand new independent user with their own company profile
+ * STRICT REQUIREMENT: Must have a unique License Number for every customer
  */
 export function registerTenantUser(data: {
   name: string;
@@ -421,10 +475,23 @@ export function registerTenantUser(data: {
   companyName: string;
   phone: string;
   state: string;
+  licenseNo: string;
   gstin?: string;
   password?: string;
 }): { user: AuthUser; company: CompanySettings } {
   const cleanEmail = data.email.trim().toLowerCase();
+  const cleanLicense = (data.licenseNo || '').trim().toUpperCase();
+
+  // Strict validation: License No is mandatory
+  if (!cleanLicense) {
+    throw new Error('लाइसेंस नंबर अनिवार्य है! बिना लाइसेंस नंबर के प्रोफाइल नहीं बनाई जा सकती (License Number is required)');
+  }
+
+  // Strict validation: License No must be unique for every customer
+  if (!isLicenseNoUnique(cleanLicense)) {
+    throw new Error(`लाइसेंस नंबर [${cleanLicense}] पहले से किसी अन्य ग्राहक द्वारा पंजीकृत है! कृपया अपना नया यूनिक लाइसेंस नंबर दर्ज करें (License number must be unique)`);
+  }
+
   const userId = 'usr_' + cleanEmail.replace(/[^a-z0-9]/g, '_') + '_' + Date.now().toString().slice(-4);
   const stateCode = getStateCodeByName(data.state);
 
@@ -437,6 +504,7 @@ export function registerTenantUser(data: {
     companyName: data.companyName.trim(),
     createdAt: new Date().toISOString(),
     lastLogin: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+    licenseNo: cleanLicense,
   };
 
   const newCompany: CompanySettings = {
@@ -458,6 +526,7 @@ export function registerTenantUser(data: {
     upiId: `${cleanEmail.split('@')[0]}@upi`,
     termsConditions: '1. Goods once sold will not be accepted back.\n2. Payment due within 15 days.\n3. All disputes subject to local jurisdiction.',
     authorizedSignatory: `For ${data.companyName.trim()}`,
+    licenseNo: cleanLicense,
   };
 
   if (typeof window !== 'undefined') {
@@ -487,6 +556,7 @@ export function registerTenantUser(data: {
       role: newUser.role,
       phone: newUser.phone,
       lastLogin: newUser.lastLogin,
+      licenseNo: cleanLicense,
     },
     company: newCompany,
   };

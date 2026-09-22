@@ -6,6 +6,8 @@ import {
   INDIAN_STATES,
   registerTenantUser,
   getRegisteredUsers,
+  generateUniqueLicenseNo,
+  isLicenseNoUnique,
 } from '@/lib/tenant-storage';
 import {
   Lock,
@@ -21,6 +23,8 @@ import {
   MapPin,
   Receipt,
   Users,
+  KeyRound,
+  Sparkles,
 } from 'lucide-react';
 
 interface LoginScreenProps {
@@ -45,6 +49,16 @@ export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
   const [regState, setRegState] = useState('Delhi');
   const [regGstin, setRegGstin] = useState('');
   const [regPassword, setRegPassword] = useState('');
+  const [regLicenseNo, setRegLicenseNo] = useState('');
+
+  const handleGenerateLicenseKey = () => {
+    const key = generateUniqueLicenseNo();
+    setRegLicenseNo(key);
+    setErrorMessage('');
+  };
+
+  const isLicenseFilled = Boolean(regLicenseNo.trim());
+  const isLicenseValidAndUnique = isLicenseFilled && isLicenseNoUnique(regLicenseNo.trim());
 
   const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -61,10 +75,13 @@ export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
       setIsLoading(false);
       const cleanEmail = email.trim().toLowerCase();
 
-      // Find from registered users registry
+      // Find from registered users registry by email, ID, or license number
       const registered = getRegisteredUsers();
       const existing = registered.find(
-        (u) => u.email.toLowerCase() === cleanEmail || u.id.toLowerCase() === cleanEmail
+        (u) =>
+          u.email.toLowerCase() === cleanEmail ||
+          u.id.toLowerCase() === cleanEmail ||
+          (u.licenseNo && u.licenseNo.toLowerCase() === cleanEmail)
       );
 
       let user: AuthUser;
@@ -76,6 +93,7 @@ export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
           role: existing.role,
           phone: existing.phone,
           lastLogin: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+          licenseNo: existing.licenseNo,
         };
       } else if (cleanEmail.includes('singhbittu') || cleanEmail.includes('bittu')) {
         user = {
@@ -85,6 +103,7 @@ export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
           role: 'Owner',
           phone: '+91 98765 43210',
           lastLogin: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+          licenseNo: 'SBS-LIC-2026-9876',
         };
       } else if (cleanEmail.includes('sharma')) {
         user = {
@@ -94,6 +113,7 @@ export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
           role: 'Owner',
           phone: '+91 98220 54321',
           lastLogin: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+          licenseNo: 'SBS-LIC-2026-5432',
         };
       } else {
         // Auto-provision tenant ID for any new user id / email
@@ -106,6 +126,7 @@ export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
           role: 'Owner',
           phone: '+91 98765 43210',
           lastLogin: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+          licenseNo: `SBS-LIC-2026-${Math.floor(1000 + Math.random() * 9000)}`,
         };
       }
 
@@ -122,6 +143,18 @@ export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
   const handleRegisterSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
+
+    // Strict validation: Licence No is mandatory before profile can be created
+    if (!regLicenseNo.trim()) {
+      setErrorMessage('कृपया यूनिक लाइसेंस नंबर दर्ज करें! बिना लाइसेंस नंबर के प्रोफाइल नहीं बन सकती (License Number is strictly required to create a profile)');
+      return;
+    }
+
+    // Strict validation: Licence No must be unique for every customer
+    if (!isLicenseNoUnique(regLicenseNo.trim())) {
+      setErrorMessage(`लाइसेंस नंबर [${regLicenseNo.trim()}] पहले से किसी अन्य ग्राहक द्वारा पंजीकृत है! प्रत्येक ग्राहक के लिए यूनिक लाइसेंस नंबर होना अनिवार्य है (License Number must be unique for each customer)`);
+      return;
+    }
 
     if (!regName.trim() || !regEmail.trim() || !regCompany.trim() || !regPassword.trim()) {
       setErrorMessage('कृपया नाम, कंपनी का नाम, ईमेल और पासवर्ड भरें');
@@ -141,6 +174,7 @@ export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
           state: regState,
           gstin: regGstin.trim(),
           password: regPassword,
+          licenseNo: regLicenseNo.trim(),
         });
 
         if (rememberMe) {
@@ -223,7 +257,7 @@ export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                  User ID / Email Address (यूजर आईडी या ईमेल)
+                  User ID / Email / Licence No (यूजर आईडी, ईमेल या लाइसेंस नंबर)
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -233,7 +267,7 @@ export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Enter User ID or Email (यूजर आईडी / ईमेल दर्ज करें)"
+                    placeholder="User ID, Email or Licence No (e.g. SBS-LIC-...)"
                     className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
@@ -313,12 +347,14 @@ export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
                 <p className="text-xs text-slate-400 mt-2.5 font-medium">
                   SmartBillSolution &bull; GST Billing, Invoices, Stock &amp; Inventory Management
                 </p>
-                <div className="flex items-center justify-center gap-3 mt-2 text-[11px] text-slate-500">
+                <div className="flex flex-wrap items-center justify-center gap-2.5 mt-2 text-[11px] text-slate-400">
                   <span className="flex items-center gap-1">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> 100% Isolated Data
                   </span>
                   <span>&bull;</span>
-                  <span>Secure User Accounts</span>
+                  <span className="flex items-center gap-1 text-cyan-300">
+                    <KeyRound className="w-3 h-3 text-amber-400" /> Unique Licence Per Customer
+                  </span>
                   <span>&bull;</span>
                   <span>GST Ready</span>
                 </div>
@@ -329,6 +365,63 @@ export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
               <div className="p-2.5 rounded-xl bg-blue-950/60 border border-blue-800/40 text-blue-300 text-xs flex items-center gap-2">
                 <Users className="w-4 h-4 flex-shrink-0 text-blue-400" />
                 <span>अपनी खुद की कंपनी और स्वतंत्र बिलिंग डेटाबेस तैयार करें।</span>
+              </div>
+
+              {/* License Number Mandatory Field for Profile Creation */}
+              <div className="p-3 rounded-xl bg-slate-950/90 border-2 border-blue-600/60 shadow-lg space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-bold text-white flex items-center gap-1.5">
+                    <KeyRound className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Software Licence No (लाइसेंस नंबर) *</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={handleGenerateLicenseKey}
+                    className="text-[11px] text-cyan-300 hover:text-cyan-100 bg-blue-950 hover:bg-blue-900 border border-blue-700/70 px-2.5 py-1 rounded-lg flex items-center gap-1 font-semibold transition-all shadow-sm active:scale-95"
+                    title="Generate a guaranteed unique customer license key"
+                  >
+                    <Sparkles className="w-3 h-3 text-amber-300" />
+                    <span>⚡ Generate Unique Key</span>
+                  </button>
+                </div>
+
+                <div className="relative">
+                  <KeyRound className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+                  <input
+                    id="input-register-license-no"
+                    type="text"
+                    required
+                    value={regLicenseNo}
+                    onChange={(e) => setRegLicenseNo(e.target.value.toUpperCase())}
+                    placeholder="e.g. SBS-LIC-8492-3104 (लाइसेंस नंबर दर्ज करें)"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl pl-9 pr-24 py-2 text-sm text-white font-mono uppercase placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 tracking-wider"
+                  />
+                  <div className="absolute right-2 top-2">
+                    {isLicenseFilled && isLicenseValidAndUnique && (
+                      <span className="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded font-bold flex items-center gap-1">
+                        <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Unique
+                      </span>
+                    )}
+                    {isLicenseFilled && !isLicenseValidAndUnique && (
+                      <span className="text-[10px] bg-rose-500/20 text-rose-300 border border-rose-500/40 px-2 py-0.5 rounded font-bold">
+                        Already in Use
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between text-[11px] pt-0.5">
+                  <span className="text-slate-400">
+                    यूनिक लाइसेंस नंबर मिलने पर ही प्रोफाइल बनेगी
+                  </span>
+                  {!isLicenseFilled ? (
+                    <span className="text-amber-400 font-semibold">* अनिवार्य (Required)</span>
+                  ) : isLicenseValidAndUnique ? (
+                    <span className="text-emerald-400 font-semibold">✓ मान्य व यूनिक</span>
+                  ) : (
+                    <span className="text-rose-400 font-semibold">✗ अन्य ग्राहक का है</span>
+                  )}
+                </div>
               </div>
 
               <div>

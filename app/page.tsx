@@ -49,6 +49,7 @@ import {
   Building2,
   Pencil,
   Camera,
+  Upload,
 } from 'lucide-react';
 import { TaxInvoiceModal } from '@/components/TaxInvoiceModal';
 import { CreateInvoiceModal } from '@/components/CreateInvoiceModal';
@@ -531,11 +532,11 @@ export default function SmartBillApp() {
             </button>
             <button
               onClick={() => setIsLogoModalOpen(true)}
-              className="inline-flex items-center space-x-1 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold border border-indigo-200 transition-colors"
-              title="Add or change company logo (कंपनी लोगो लगाएं)"
+              className="inline-flex items-center space-x-1.5 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold border border-indigo-200 transition-colors"
+              title="Upload PNG / JPG company logo (कंपनी का PNG/JPG लोगो लगाएं)"
             >
-              <Camera className="w-3.5 h-3.5 text-indigo-600" />
-              <span>Company Logo (लोगो)</span>
+              <Upload className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Upload Logo (PNG/JPG)</span>
             </button>
             <button
               id="btn-edit-company-profile"

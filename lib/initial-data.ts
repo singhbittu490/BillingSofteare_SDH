@@ -1,8 +1,12 @@
 import { CompanySettings, Customer, Expense, Invoice, Product, Purchase, Supplier } from './types';
 
+export const DEFAULT_BRAND_LOGO =
+  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 200 200' width='200' height='200'%3E%3Cdefs%3E%3ClinearGradient id='bgGrad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%231e3a8a'/%3E%3Cstop offset='50%25' stop-color='%232563eb'/%3E%3Cstop offset='100%25' stop-color='%230ea5e9'/%3E%3C/linearGradient%3E%3ClinearGradient id='accentGrad' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' stop-color='%23f59e0b'/%3E%3Cstop offset='100%25' stop-color='%23d97706'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='200' height='200' rx='36' fill='url(%23bgGrad)'/%3E%3Ccircle cx='100' cy='100' r='76' fill='none' stroke='white' stroke-opacity='0.2' stroke-width='3'/%3E%3Cpath d='M60 70 L100 45 L140 70 L140 130 L100 155 L60 130 Z' fill='none' stroke='white' stroke-width='8' stroke-linejoin='round'/%3E%3Cpath d='M80 88 C80 80 87 74 95 74 L110 74 C118 74 124 80 124 87 C124 94 118 100 110 100 L90 100 C82 100 76 106 76 113 C76 120 82 126 90 126 L115 126' fill='none' stroke='white' stroke-width='9' stroke-linecap='round'/%3E%3Cpolygon points='105,60 122,88 108,88 116,118 96,82 108,82' fill='url(%23accentGrad)'/%3E%3C/svg%3E";
+
 export const initialCompanySettings: CompanySettings = {
   companyName: 'SmartBill Infotech',
   legalName: 'SmartBill Technologies Private Limited',
+  logoUrl: DEFAULT_BRAND_LOGO,
   address: 'Office No. 504, Business Park, S.V. Road',
   city: 'Mumbai',
   state: 'Maharashtra',

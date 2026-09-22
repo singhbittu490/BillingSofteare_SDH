@@ -92,25 +92,60 @@ export function CompanyProfileTab({
     const file = e.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith('image/')) {
-      alert('कृपया केवल इमेज फ़ाइल (PNG, JPG, SVG, WebP) अपलोड करें।');
+    const isImage = file.type.startsWith('image/') || /\.(png|jpe?g|webp|svg)$/i.test(file.name);
+    if (!isImage) {
+      alert('कृपया केवल इमेज फ़ाइल (PNG, JPG, JPEG, SVG, WebP) अपलोड करें।');
       return;
     }
 
-    if (file.size > 2 * 1024 * 1024) {
-      alert('फ़ाइल का आकार 2MB से कम होना चाहिए (File size must be under 2MB).');
+    if (file.size > 5 * 1024 * 1024) {
+      alert('फ़ाइल का आकार 5MB से कम होना चाहिए (File size must be under 5MB).');
       return;
     }
 
     const reader = new FileReader();
     reader.onload = () => {
-      const result = reader.result as string;
-      setFormData((prev) => ({
-        ...prev,
-        logoUrl: result,
-      }));
+      const rawDataUrl = reader.result as string;
+      const img = new Image();
+      img.onload = () => {
+        const maxDimension = 800;
+        let targetWidth = img.width;
+        let targetHeight = img.height;
+
+        if (targetWidth > maxDimension || targetHeight > maxDimension) {
+          if (targetWidth > targetHeight) {
+            targetHeight = Math.round((targetHeight * maxDimension) / targetWidth);
+            targetWidth = maxDimension;
+          } else {
+            targetWidth = Math.round((targetWidth * maxDimension) / targetHeight);
+            targetHeight = maxDimension;
+          }
+        }
+
+        try {
+          const canvas = document.createElement('canvas');
+          canvas.width = targetWidth;
+          canvas.height = targetHeight;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+            const isJpg = file.type.includes('jpeg') || file.type.includes('jpg') || /\.jpe?g$/i.test(file.name);
+            const outputType = isJpg ? 'image/jpeg' : 'image/png';
+            const compressed = canvas.toDataURL(outputType, 0.92);
+            setFormData((prev) => ({ ...prev, logoUrl: compressed }));
+            return;
+          }
+        } catch {}
+
+        setFormData((prev) => ({ ...prev, logoUrl: rawDataUrl }));
+      };
+      img.onerror = () => {
+        setFormData((prev) => ({ ...prev, logoUrl: rawDataUrl }));
+      };
+      img.src = rawDataUrl;
     };
     reader.readAsDataURL(file);
+    if (e.target) e.target.value = '';
   };
 
   const handleRemoveLogo = () => {
@@ -253,15 +288,15 @@ export function CompanyProfileTab({
                     <div className="flex flex-wrap items-center gap-2">
                       <label
                         htmlFor="file-upload-logo"
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer shadow-sm transition-colors"
+                        className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold cursor-pointer shadow-sm transition-colors"
                       >
                         <Upload className="w-3.5 h-3.5" />
-                        <span>{formData.logoUrl ? 'Change Logo (नया लोगो अपलोड करें)' : 'Upload Business Logo (लोगो लगाएं)'}</span>
+                        <span>{formData.logoUrl ? 'Change PNG / JPG Logo (लोगो बदलें)' : 'Upload PNG / JPG Logo File (लोगो अपलोड करें)'}</span>
                       </label>
                       <input
                         id="file-upload-logo"
                         type="file"
-                        accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                        accept=".png,.jpg,.jpeg,.webp,.svg,image/png,image/jpeg,image/webp,image/svg+xml,image/*"
                         onChange={handleLogoFileChange}
                         className="hidden"
                       />

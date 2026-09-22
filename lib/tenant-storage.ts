@@ -7,6 +7,7 @@ import {
   initialProducts,
   initialPurchases,
   initialSuppliers,
+  DEFAULT_BRAND_LOGO,
 } from './initial-data';
 
 export interface UserAccount {
@@ -120,6 +121,7 @@ export const SHARMA_COMPANY: CompanySettings = {
 export const BITTU_COMPANY: CompanySettings = {
   companyName: 'Smart Tech Solutions Pvt Ltd',
   legalName: 'Smart Tech Solutions Private Limited',
+  logoUrl: DEFAULT_BRAND_LOGO,
   address: 'Unit 402, IT Tower, Okhla Phase III',
   city: 'New Delhi',
   state: 'Delhi',

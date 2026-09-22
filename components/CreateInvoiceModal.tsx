@@ -11,8 +11,9 @@ interface CreateInvoiceModalProps {
   customers: Customer[];
   products: Product[];
   nextInvoiceNum: string;
+  initialInvoice?: Invoice | null;
   onClose: () => void;
-  onSave: (newInvoice: Invoice, updatedProducts: Product[], updatedCustomers: Customer[]) => void;
+  onSave: (newInvoice: Invoice, updatedProducts: Product[], updatedCustomers: Customer[], isEdit?: boolean) => void;
 }
 
 interface DraftItem {
@@ -32,17 +33,20 @@ export function CreateInvoiceModal({
   customers,
   products,
   nextInvoiceNum,
+  initialInvoice,
   onClose,
   onSave,
 }: CreateInvoiceModalProps) {
-  const [invoiceNumber, setInvoiceNumber] = useState<string>(nextInvoiceNum);
-  const [selectedCustomerId, setSelectedCustomerId] = useState<number>(customers[0]?.id || 1);
-  const [invoiceDate, setInvoiceDate] = useState<string>(() => getTodayDateString());
-  const [dueDate, setDueDate] = useState<string>(() => getDueDateString(15));
-  const [paymentStatus, setPaymentStatus] = useState<'Paid' | 'Partially Paid' | 'Unpaid'>('Paid');
-  const [paidAmountInput, setPaidAmountInput] = useState<string>('');
-  const [paymentMode, setPaymentMode] = useState<string>('UPI');
-  const [notes, setNotes] = useState<string>('Thank you for your business!');
+  const isEdit = Boolean(initialInvoice);
+
+  const [invoiceNumber, setInvoiceNumber] = useState<string>(initialInvoice?.invoiceNumber || nextInvoiceNum);
+  const [selectedCustomerId, setSelectedCustomerId] = useState<number>(initialInvoice?.customerId || customers[0]?.id || 1);
+  const [invoiceDate, setInvoiceDate] = useState<string>(() => initialInvoice?.invoiceDate || getTodayDateString());
+  const [dueDate, setDueDate] = useState<string>(() => initialInvoice?.dueDate || getDueDateString(15));
+  const [paymentStatus, setPaymentStatus] = useState<'Paid' | 'Partially Paid' | 'Unpaid'>(initialInvoice?.paymentStatus || 'Paid');
+  const [paidAmountInput, setPaidAmountInput] = useState<string>(initialInvoice ? initialInvoice.paidAmount.toString() : '');
+  const [paymentMode, setPaymentMode] = useState<string>(initialInvoice?.paymentMode || 'UPI');
+  const [notes, setNotes] = useState<string>(initialInvoice?.notes ?? 'Thank you for your business!');
 
   // Custom customer input state (if "New Customer" selected)
   const [isCustomCustomer, setIsCustomCustomer] = useState<boolean>(false);
@@ -60,19 +64,34 @@ export function CreateInvoiceModal({
   const isInterState = activeStateCode !== company.stateCode;
 
   // Item lines state
-  const [items, setItems] = useState<DraftItem[]>([
-    {
-      id: 'item-1',
-      productId: products[0]?.id || 1,
-      productName: products[0]?.name || 'Product',
-      hsnSac: products[0]?.hsnSac || '8471',
-      quantity: 1,
-      unit: products[0]?.unit || 'PCS',
-      rate: products[0]?.sellingPrice || 500,
-      discountPercent: 0,
-      gstRate: products[0]?.gstRate || 18,
-    },
-  ]);
+  const [items, setItems] = useState<DraftItem[]>(() => {
+    if (initialInvoice && initialInvoice.items && initialInvoice.items.length > 0) {
+      return initialInvoice.items.map((it, idx) => ({
+        id: `draft-item-${it.id || idx}`,
+        productId: it.productId,
+        productName: it.productName,
+        hsnSac: it.hsnSac || '',
+        quantity: it.quantity,
+        unit: it.unit || 'PCS',
+        rate: it.rate,
+        discountPercent: it.discountPercent || 0,
+        gstRate: it.gstRate,
+      }));
+    }
+    return [
+      {
+        id: 'item-1',
+        productId: products[0]?.id || 1,
+        productName: products[0]?.name || 'Product',
+        hsnSac: products[0]?.hsnSac || '8471',
+        quantity: 1,
+        unit: products[0]?.unit || 'PCS',
+        rate: products[0]?.sellingPrice || 500,
+        discountPercent: 0,
+        gstRate: products[0]?.gstRate || 18,
+      },
+    ];
+  });
 
   const handleProductSelect = (index: number, pId: number) => {
     const prod = products.find((p) => p.id === pId);
@@ -231,20 +250,34 @@ export function CreateInvoiceModal({
       targetCustomerAddress = currentCustomer.billingAddress;
     }
 
-    // Deduct stock from products
+    // Stock adjustment with proper reconciliation for edit
     const updatedProducts = products.map((prod) => {
-      const match = calculatedItems.find((it) => it.productId === prod.id);
-      if (match && prod.currentStock < 900) {
-        return {
-          ...prod,
-          currentStock: Math.max(0, prod.currentStock - match.quantity),
-        };
+      const newMatch = calculatedItems.find((it) => it.productId === prod.id);
+      const newQty = newMatch ? newMatch.quantity : 0;
+
+      if (isEdit && initialInvoice) {
+        const oldMatch = initialInvoice.items.find((it) => it.productId === prod.id);
+        const oldQty = oldMatch ? oldMatch.quantity : 0;
+        const diff = newQty - oldQty;
+        if (diff !== 0 && prod.currentStock < 900) {
+          return {
+            ...prod,
+            currentStock: Math.max(0, prod.currentStock - diff),
+          };
+        }
+      } else {
+        if (newMatch && prod.currentStock < 900) {
+          return {
+            ...prod,
+            currentStock: Math.max(0, prod.currentStock - newQty),
+          };
+        }
       }
       return prod;
     });
 
-    const newInvoice: Invoice = {
-      id: generateUniqueId(),
+    const savedInvoice: Invoice = {
+      id: initialInvoice ? initialInvoice.id : generateUniqueId(),
       invoiceNumber: invoiceNumber.trim(),
       invoiceDate,
       dueDate,
@@ -270,10 +303,10 @@ export function CreateInvoiceModal({
       paymentStatus,
       paymentMode: paymentStatus !== 'Unpaid' ? paymentMode : undefined,
       notes,
-      createdAt: new Date().toISOString(),
+      createdAt: initialInvoice ? initialInvoice.createdAt : new Date().toISOString(),
     };
 
-    onSave(newInvoice, updatedProducts, newCustomerList);
+    onSave(savedInvoice, updatedProducts, newCustomerList, isEdit);
   };
 
   return (
@@ -284,7 +317,9 @@ export function CreateInvoiceModal({
           <div className="flex items-center space-x-2">
             <Calculator className="w-5 h-5 text-blue-400" />
             <div className="flex items-center gap-2">
-              <h2 className="font-bold text-base sm:text-lg">Create GST Tax Invoice</h2>
+              <h2 className="font-bold text-base sm:text-lg">
+                {isEdit ? 'Edit GST Tax Invoice' : 'Create GST Tax Invoice'}
+              </h2>
               <span className="px-2 py-0.5 rounded bg-blue-500/30 text-blue-200 font-mono text-xs font-semibold border border-blue-400/30">
                 #{invoiceNumber || 'NEW'}
               </span>
@@ -729,7 +764,7 @@ export function CreateInvoiceModal({
               className="px-5 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-md shadow transition-colors flex items-center gap-1.5"
             >
               <UserCheck className="w-4 h-4" />
-              <span>Save & Generate Invoice</span>
+              <span>{isEdit ? 'Update & Save Invoice (अपडेट करें)' : 'Save & Generate Invoice'}</span>
             </button>
           </div>
         </form>

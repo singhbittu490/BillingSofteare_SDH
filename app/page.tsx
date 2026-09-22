@@ -47,6 +47,8 @@ import {
   TrendingUp,
   LogOut,
   Building2,
+  Pencil,
+  Camera,
 } from 'lucide-react';
 import { TaxInvoiceModal } from '@/components/TaxInvoiceModal';
 import { CreateInvoiceModal } from '@/components/CreateInvoiceModal';
@@ -56,7 +58,7 @@ import { StockAdjustModal } from '@/components/StockAdjustModal';
 import { AddCustomerModal } from '@/components/AddCustomerModal';
 import { AddExpenseModal } from '@/components/AddExpenseModal';
 import { AddPurchaseModal } from '@/components/AddPurchaseModal';
-import { HostingerGuideModal } from '@/components/HostingerGuideModal';
+import { LogoUploadModal } from '@/components/LogoUploadModal';
 import { LoginScreen } from '@/components/LoginScreen';
 import { CompanyProfileTab } from '@/components/CompanyProfileTab';
 import { downloadInvoicePDFDirect, openInvoicePDFInNewTab } from '@/lib/invoice-pdf';
@@ -70,8 +72,7 @@ type NavTab =
   | 'purchases'
   | 'expenses'
   | 'profile'
-  | 'reports'
-  | 'hostinger';
+  | 'reports';
 
 export default function SmartBillApp() {
   // Core Data States initialized consistently for SSR
@@ -131,13 +132,16 @@ export default function SmartBillApp() {
   // Modals state
   const [previewInvoice, setPreviewInvoice] = useState<Invoice | null>(null);
   const [isCreatingInvoice, setIsCreatingInvoice] = useState(false);
+  const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [isAddingProduct, setIsAddingProduct] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [adjustingProduct, setAdjustingProduct] = useState<Product | null>(null);
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [isAddingPurchase, setIsAddingPurchase] = useState(false);
-  const [isHostingerGuideOpen, setIsHostingerGuideOpen] = useState(false);
+  const [editingPurchase, setEditingPurchase] = useState<Purchase | null>(null);
+  const [isLogoModalOpen, setIsLogoModalOpen] = useState(false);
 
   // Save to isolated user-specific storage on changes
   useEffect(() => {
@@ -216,15 +220,21 @@ export default function SmartBillApp() {
 
   // Invoice Handlers
   const handleSaveInvoice = (
-    newInvoice: Invoice,
+    savedInvoice: Invoice,
     updatedProds: Product[],
-    updatedCusts: Customer[]
+    updatedCusts: Customer[],
+    isEdit?: boolean
   ) => {
-    setInvoices([newInvoice, ...invoices]);
+    if (isEdit) {
+      setInvoices((prev) => prev.map((inv) => (inv.id === savedInvoice.id ? savedInvoice : inv)));
+    } else {
+      setInvoices([savedInvoice, ...invoices]);
+    }
     setProducts(updatedProds);
     setCustomers(updatedCusts);
     setIsCreatingInvoice(false);
-    setPreviewInvoice(newInvoice); // immediately show generated invoice for printing!
+    setEditingInvoice(null);
+    setPreviewInvoice(savedInvoice); // immediately show generated invoice for printing/preview!
   };
 
   const handleDeleteInvoice = (invId: number) => {
@@ -245,6 +255,82 @@ export default function SmartBillApp() {
         })
       );
       setInvoices((prev) => prev.filter((i) => i.id !== invId));
+    }
+  };
+
+  // Product CRUD Handlers
+  const handleSaveProduct = (savedProd: Product) => {
+    setProducts((prev) => {
+      const exists = prev.some((p) => p.id === savedProd.id);
+      if (exists) {
+        return prev.map((p) => (p.id === savedProd.id ? savedProd : p));
+      }
+      return [savedProd, ...prev];
+    });
+    setIsAddingProduct(false);
+    setEditingProduct(null);
+  };
+
+  const handleDeleteProduct = (productId: number) => {
+    const prod = products.find((p) => p.id === productId);
+    if (!prod) return;
+    if (
+      confirm(
+        `Are you sure you want to delete "${prod.name}" (SKU: ${prod.sku})? This action cannot be undone.`
+      )
+    ) {
+      setProducts((prev) => prev.filter((p) => p.id !== productId));
+    }
+  };
+
+  // Purchase CRUD Handlers
+  const handleSavePurchase = (savedPurchase: Purchase, updatedProducts: Product[]) => {
+    setPurchases((prev) => {
+      const exists = prev.some((p) => p.id === savedPurchase.id);
+      if (exists) {
+        return prev.map((p) => (p.id === savedPurchase.id ? savedPurchase : p));
+      }
+      return [savedPurchase, ...prev];
+    });
+    setProducts(updatedProducts);
+    setIsAddingPurchase(false);
+    setEditingPurchase(null);
+  };
+
+  const handleDeletePurchase = (purchaseId: number) => {
+    const pur = purchases.find((p) => p.id === purchaseId);
+    if (!pur) return;
+    if (
+      confirm(
+        `Cancel and delete Purchase Bill ${pur.purchaseNumber}? Inventory stock will be deducted accordingly.`
+      )
+    ) {
+      setProducts((prev) =>
+        prev.map((prod) => {
+          const item = pur.items.find((it) => it.productId === prod.id);
+          if (item) {
+            return {
+              ...prod,
+              currentStock: Math.max(0, prod.currentStock - item.quantity),
+            };
+          }
+          return prod;
+        })
+      );
+      setPurchases((prev) => prev.filter((p) => p.id !== purchaseId));
+    }
+  };
+
+  // Logo Handler
+  const handleSaveLogo = (newLogoUrl: string | undefined) => {
+    const updatedCompany = { ...company, logoUrl: newLogoUrl };
+    setCompany(updatedCompany);
+    if (currentUser) {
+      try {
+        localStorage.setItem(`smartbill_${currentUser.id}_company`, JSON.stringify(updatedCompany));
+      } catch (e) {
+        console.error('Failed to save company logo:', e);
+      }
     }
   };
 
@@ -372,17 +458,26 @@ export default function SmartBillApp() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row md:items-center justify-between py-3 gap-3">
           {/* Logo & Company Info */}
           <div className="flex items-center space-x-3">
-            {company.logoUrl ? (
-              <img
-                src={company.logoUrl}
-                alt={company.companyName}
-                className="w-11 h-11 rounded-xl object-contain bg-white border border-slate-200 p-1 shadow-xs flex-shrink-0"
-              />
-            ) : (
-              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black text-xl shadow-md flex-shrink-0">
-                {company.companyName.charAt(0).toUpperCase()}
-              </div>
-            )}
+            <button
+              onClick={() => setIsLogoModalOpen(true)}
+              className="relative group rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 text-left"
+              title="Click to upload or change business logo (कंपनी का लोगो लगाएं)"
+            >
+              {company.logoUrl ? (
+                <img
+                  src={company.logoUrl}
+                  alt={company.companyName}
+                  className="w-11 h-11 rounded-xl object-contain bg-white border border-slate-200 p-1 shadow-xs flex-shrink-0 group-hover:opacity-80 transition-opacity"
+                />
+              ) : (
+                <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black text-xl shadow-md flex-shrink-0 group-hover:opacity-90 transition-opacity">
+                  {company.companyName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <span className="absolute -bottom-1 -right-1 bg-slate-900 text-white p-0.5 rounded-full shadow text-[9px] group-hover:scale-110 transition-transform">
+                <Camera className="w-2.5 h-2.5" />
+              </span>
+            </button>
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">{company.companyName}</h1>
@@ -406,6 +501,14 @@ export default function SmartBillApp() {
               <span>Create Invoice</span>
             </button>
             <button
+              onClick={() => setIsLogoModalOpen(true)}
+              className="inline-flex items-center space-x-1 px-3 py-2 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded-lg text-xs font-semibold border border-indigo-200 transition-colors"
+              title="Add or change company logo (कंपनी लोगो लगाएं)"
+            >
+              <Camera className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Company Logo (लोगो)</span>
+            </button>
+            <button
               id="btn-edit-company-profile"
               onClick={() => setActiveTab('profile')}
               className={`inline-flex items-center space-x-1 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
@@ -416,7 +519,7 @@ export default function SmartBillApp() {
               title="Manage company profile, GSTIN, and Bank details"
             >
               <Building2 className="w-3.5 h-3.5 text-blue-600" />
-              <span>Company Profile</span>
+              <span>Profile</span>
             </button>
             <button
               onClick={() => setIsAddingProduct(true)}
@@ -474,7 +577,6 @@ export default function SmartBillApp() {
             { id: 'expenses', label: `Expenses (${expenses.length})`, icon: Receipt },
             { id: 'profile', label: 'Company Profile (कंपनी)', icon: Building2 },
             { id: 'reports', label: 'GST & P&L Reports', icon: BarChart3 },
-            { id: 'hostinger', label: 'Hostinger Export', icon: Server },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -708,6 +810,13 @@ export default function SmartBillApp() {
                           >
                             <Printer className="w-3.5 h-3.5 inline" />
                           </button>
+                          <button
+                            onClick={() => setEditingInvoice(inv)}
+                            className="p-1 text-slate-600 hover:text-amber-600 rounded hover:bg-slate-100"
+                            title="Edit Invoice (बिल संपादित करें)"
+                          >
+                            <Pencil className="w-3.5 h-3.5 inline" />
+                          </button>
                           {inv.outstandingAmount > 0 && (
                             <button
                               onClick={() => setPaymentInvoice(inv)}
@@ -870,6 +979,14 @@ export default function SmartBillApp() {
                                 <Printer className="w-3.5 h-3.5 inline mr-1" />
                                 View
                               </button>
+                              <button
+                                onClick={() => setEditingInvoice(inv)}
+                                className="px-2 py-1 bg-amber-50 text-amber-800 hover:bg-amber-100 rounded text-xs font-semibold border border-amber-300 inline-flex items-center"
+                                title="Edit Invoice (बिल एडिट करें)"
+                              >
+                                <Pencil className="w-3.5 h-3.5 inline mr-1" />
+                                Edit
+                              </button>
                               {inv.outstandingAmount > 0 && (
                                 <button
                                   onClick={() => setPaymentInvoice(inv)}
@@ -971,12 +1088,28 @@ export default function SmartBillApp() {
                               </span>
                             )}
                           </td>
-                          <td className="p-3 text-right">
+                          <td className="p-3 text-right space-x-1 whitespace-nowrap">
+                            <button
+                              onClick={() => setEditingProduct(prod)}
+                              className="px-2.5 py-1 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded font-semibold text-xs border border-blue-200 inline-flex items-center"
+                              title="Edit Product Details (उत्पाद संपादित करें)"
+                            >
+                              <Pencil className="w-3.5 h-3.5 mr-1" />
+                              Edit
+                            </button>
                             <button
                               onClick={() => setAdjustingProduct(prod)}
-                              className="px-2.5 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold text-xs border border-slate-300"
+                              className="px-2 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded font-semibold text-xs border border-slate-300 inline-flex items-center"
+                              title="Adjust Product Stock (स्टॉक बदलें)"
                             >
-                              Adjust Stock
+                              Stock
+                            </button>
+                            <button
+                              onClick={() => handleDeleteProduct(prod.id)}
+                              className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors inline-flex items-center"
+                              title="Delete Product (उत्पाद हटाएं)"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
                             </button>
                           </td>
                         </tr>
@@ -1115,6 +1248,7 @@ export default function SmartBillApp() {
                       <th className="p-3 text-right">Input Tax (ITC)</th>
                       <th className="p-3 text-right">Grand Total</th>
                       <th className="p-3 text-center">Status</th>
+                      <th className="p-3 text-right">Actions</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
@@ -1138,6 +1272,23 @@ export default function SmartBillApp() {
                           <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 rounded-full font-bold text-[10px]">
                             {pur.paymentStatus}
                           </span>
+                        </td>
+                        <td className="p-3 text-right space-x-1 whitespace-nowrap">
+                          <button
+                            onClick={() => setEditingPurchase(pur)}
+                            className="px-2 py-1 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 rounded text-xs font-semibold border border-emerald-300 inline-flex items-center"
+                            title="Edit Purchase Bill (बिल संपादित करें)"
+                          >
+                            <Pencil className="w-3.5 h-3.5 mr-1" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeletePurchase(pur.id)}
+                            className="p-1 text-slate-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors inline-flex items-center"
+                            title="Delete Purchase Bill (खरीद बिल हटाएं)"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -1332,7 +1483,7 @@ export default function SmartBillApp() {
         {/* ------------------------------------------------------------- */}
         {activeTab === 'profile' && (
           <CompanyProfileTab
-            key={currentUser.id}
+            key={`${currentUser.id}_${company.logoUrl || ''}_${company.companyName}`}
             currentUser={currentUser}
             company={company}
             onUpdateCompany={(updated) => {
@@ -1344,79 +1495,6 @@ export default function SmartBillApp() {
           />
         )}
 
-        {/* ------------------------------------------------------------- */}
-        {/* TAB 8: HOSTINGER EXPORT HUB */}
-        {/* ------------------------------------------------------------- */}
-        {activeTab === 'hostinger' && (
-          <div className="bg-white rounded-xl p-6 border border-slate-200 shadow-sm space-y-6">
-            <div className="flex justify-between items-start">
-              <div>
-                <h3 className="font-bold text-lg text-slate-900">Hostinger Shared Hosting Deployment Center</h3>
-                <p className="text-xs text-slate-500">
-                  Everything you need to deploy SmartBill on Hostinger cPanel / hPanel with PHP 8+ and MySQL.
-                </p>
-              </div>
-              <button
-                onClick={() => setIsHostingerGuideOpen(true)}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold shadow flex items-center gap-1.5"
-              >
-                <Server className="w-4 h-4" /> View Full Step-by-Step Checklist
-              </button>
-            </div>
-
-            {/* Explanatory Box */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-xs text-blue-900 space-y-2">
-              <h4 className="font-bold text-sm text-blue-950 flex items-center gap-2">
-                <CheckCircle className="w-4 h-4 text-blue-600" />
-                Why You See This Live Screen & How to Deploy on Hostinger:
-              </h4>
-              <p className="leading-relaxed">
-                The Google AI Studio web container executes <strong>Next.js</strong> to provide you with an instant, interactive live preview of SmartBill right here in your browser.
-              </p>
-              <p className="leading-relaxed">
-                Meanwhile, the complete production-grade <strong>PHP 8+</strong> files (including <code>database.sql</code>, <code>index.php</code>, <code>dashboard.php</code>, <code>config/database.php</code>, <code>.htaccess</code>, and all modular scripts) are stored in this project directory ready for your Hostinger hosting!
-              </p>
-            </div>
-
-            {/* Quick Download database.sql */}
-            <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-              <div>
-                <h4 className="font-bold text-sm text-slate-900">1. MySQL Database Schema File (database.sql)</h4>
-                <p className="text-xs text-slate-500">
-                  Ready to import directly via phpMyAdmin in Hostinger. Includes all tables, default admin, and seed products.
-                </p>
-              </div>
-              <a
-                href="/database.sql"
-                download="smartbill_database.sql"
-                className="px-4 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded text-xs font-bold flex items-center gap-1.5 whitespace-nowrap shadow"
-              >
-                <Download className="w-4 h-4" /> Download database.sql
-              </a>
-            </div>
-
-            {/* Credentials Card */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-1">
-                <span className="font-bold text-slate-700">Default Admin Credentials for Hostinger PHP:</span>
-                <div className="font-mono bg-white p-2 rounded border border-slate-300 mt-2">
-                  <p><strong>Email:</strong> admin@smartbill.com</p>
-                  <p><strong>Password:</strong> admin123</p>
-                </div>
-              </div>
-
-              <div className="bg-slate-50 p-4 rounded-lg border border-slate-200 space-y-1">
-                <span className="font-bold text-slate-700">Hostinger Database Config (config/database.php):</span>
-                <pre className="font-mono bg-white p-2 rounded border border-slate-300 mt-2 text-[11px] text-slate-700 whitespace-pre">
-{`$db_host = 'localhost';
-$db_name = 'your_hostinger_dbname';
-$db_user = 'your_hostinger_dbuser';
-$db_pass = 'your_hostinger_password';`}
-                </pre>
-              </div>
-            </div>
-          </div>
-        )}
       </main>
 
       {/* Global Footer */}
@@ -1430,10 +1508,10 @@ $db_pass = 'your_hostinger_password';`}
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setIsHostingerGuideOpen(true)}
-              className="text-slate-500 hover:text-blue-600 transition-colors"
+              onClick={() => setIsLogoModalOpen(true)}
+              className="text-indigo-600 hover:text-indigo-800 font-semibold transition-colors flex items-center gap-1"
             >
-              Hostinger cPanel Guide
+              <Camera className="w-3.5 h-3.5" /> Company Logo
             </button>
             <span>&bull;</span>
             <button
@@ -1456,13 +1534,17 @@ $db_pass = 'your_hostinger_password';`}
         />
       )}
 
-      {isCreatingInvoice && (
+      {(isCreatingInvoice || editingInvoice) && (
         <CreateInvoiceModal
           company={company}
           customers={customers}
           products={products}
           nextInvoiceNum={nextInvoiceNumber}
-          onClose={() => setIsCreatingInvoice(false)}
+          initialInvoice={editingInvoice || undefined}
+          onClose={() => {
+            setIsCreatingInvoice(false);
+            setEditingInvoice(null);
+          }}
           onSave={handleSaveInvoice}
         />
       )}
@@ -1475,13 +1557,14 @@ $db_pass = 'your_hostinger_password';`}
         />
       )}
 
-      {isAddingProduct && (
+      {(isAddingProduct || editingProduct) && (
         <AddProductModal
-          onClose={() => setIsAddingProduct(false)}
-          onSave={(newProd) => {
-            setProducts([newProd, ...products]);
+          initialProduct={editingProduct || undefined}
+          onClose={() => {
             setIsAddingProduct(false);
+            setEditingProduct(null);
           }}
+          onSave={handleSaveProduct}
         />
       )}
 
@@ -1518,22 +1601,26 @@ $db_pass = 'your_hostinger_password';`}
         />
       )}
 
-      {isAddingPurchase && (
+      {(isAddingPurchase || editingPurchase) && (
         <AddPurchaseModal
           suppliers={suppliers}
           products={products}
           nextPurchaseNum={nextPurchaseNumber}
-          onClose={() => setIsAddingPurchase(false)}
-          onSave={(newPur, updatedProds) => {
-            setPurchases([newPur, ...purchases]);
-            setProducts(updatedProds);
+          initialPurchase={editingPurchase || undefined}
+          onClose={() => {
             setIsAddingPurchase(false);
+            setEditingPurchase(null);
           }}
+          onSave={handleSavePurchase}
         />
       )}
 
-      {isHostingerGuideOpen && (
-        <HostingerGuideModal onClose={() => setIsHostingerGuideOpen(false)} />
+      {isLogoModalOpen && (
+        <LogoUploadModal
+          company={company}
+          onClose={() => setIsLogoModalOpen(false)}
+          onSaveLogo={handleSaveLogo}
+        />
       )}
     </div>
   );

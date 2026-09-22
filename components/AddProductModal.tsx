@@ -6,30 +6,33 @@ import { X, PackagePlus } from 'lucide-react';
 import { generateUniqueId } from '@/lib/utils';
 
 interface AddProductModalProps {
+  initialProduct?: Product | null;
   onClose: () => void;
   onSave: (product: Product) => void;
 }
 
-export function AddProductModal({ onClose, onSave }: AddProductModalProps) {
-  const [name, setName] = useState('');
-  const [sku, setSku] = useState('');
-  const [category, setCategory] = useState('Electronics & Hardware');
-  const [hsnSac, setHsnSac] = useState('8471');
-  const [unit, setUnit] = useState('PCS');
-  const [purchasePrice, setPurchasePrice] = useState<number>(0);
-  const [sellingPrice, setSellingPrice] = useState<number>(0);
-  const [mrp, setMrp] = useState<number>(0);
-  const [gstRate, setGstRate] = useState<number>(18);
-  const [currentStock, setCurrentStock] = useState<number>(10);
-  const [minimumStock, setMinimumStock] = useState<number>(5);
-  const [description, setDescription] = useState('');
+export function AddProductModal({ initialProduct, onClose, onSave }: AddProductModalProps) {
+  const [name, setName] = useState(initialProduct?.name || '');
+  const [sku, setSku] = useState(initialProduct?.sku || '');
+  const [category, setCategory] = useState(initialProduct?.category || 'Electronics & Hardware');
+  const [hsnSac, setHsnSac] = useState(initialProduct?.hsnSac || '8471');
+  const [unit, setUnit] = useState(initialProduct?.unit || 'PCS');
+  const [purchasePrice, setPurchasePrice] = useState<number>(initialProduct?.purchasePrice ?? 0);
+  const [sellingPrice, setSellingPrice] = useState<number>(initialProduct?.sellingPrice ?? 0);
+  const [mrp, setMrp] = useState<number>(initialProduct?.mrp ?? (initialProduct?.sellingPrice ?? 0));
+  const [gstRate, setGstRate] = useState<number>(initialProduct?.gstRate ?? 18);
+  const [currentStock, setCurrentStock] = useState<number>(initialProduct?.currentStock ?? 10);
+  const [minimumStock, setMinimumStock] = useState<number>(initialProduct?.minimumStock ?? 5);
+  const [description, setDescription] = useState(initialProduct?.description || '');
+
+  const isEdit = Boolean(initialProduct);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
 
-    const newProd: Product = {
-      id: generateUniqueId(),
+    const savedProd: Product = {
+      id: initialProduct?.id || generateUniqueId(),
       name: name.trim(),
       sku: sku.trim() || `SKU-${Math.floor(1000 + Math.random() * 9000)}`,
       category,
@@ -44,7 +47,7 @@ export function AddProductModal({ onClose, onSave }: AddProductModalProps) {
       description: description.trim(),
     };
 
-    onSave(newProd);
+    onSave(savedProd);
   };
 
   return (
@@ -53,7 +56,9 @@ export function AddProductModal({ onClose, onSave }: AddProductModalProps) {
         <div className="flex justify-between items-center px-6 py-4 bg-slate-900 text-white">
           <div className="flex items-center gap-2">
             <PackagePlus className="w-5 h-5 text-blue-400" />
-            <h3 className="font-bold text-base">Add New Product / Inventory Item</h3>
+            <h3 className="font-bold text-base">
+              {isEdit ? 'Edit Product / Inventory Item' : 'Add New Product / Inventory Item'}
+            </h3>
           </div>
           <button onClick={onClose} className="p-1 text-slate-400 hover:text-white rounded">
             <X className="w-4 h-4" />
@@ -214,7 +219,7 @@ export function AddProductModal({ onClose, onSave }: AddProductModalProps) {
               type="submit"
               className="px-4 py-2 text-xs font-bold text-white bg-blue-600 hover:bg-blue-700 rounded shadow"
             >
-              Save Product
+              {isEdit ? 'Update Product (अपडेट करें)' : 'Save Product (सेव करें)'}
             </button>
           </div>
         </form>

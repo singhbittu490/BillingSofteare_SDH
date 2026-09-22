@@ -9,6 +9,7 @@ interface AddPurchaseModalProps {
   suppliers: Supplier[];
   products: Product[];
   nextPurchaseNum: string;
+  initialPurchase?: Purchase | null;
   onClose: () => void;
   onSave: (purchase: Purchase, updatedProducts: Product[]) => void;
 }
@@ -17,18 +18,22 @@ export function AddPurchaseModal({
   suppliers,
   products,
   nextPurchaseNum,
+  initialPurchase,
   onClose,
   onSave,
 }: AddPurchaseModalProps) {
-  const [supplierId, setSupplierId] = useState<number>(suppliers[0]?.id || 1);
-  const [supplierBillNumber, setSupplierBillNumber] = useState('');
-  const [purchaseDate, setPurchaseDate] = useState(() => getTodayDateString());
-  const [selectedProductId, setSelectedProductId] = useState<number>(products[0]?.id || 1);
-  const [quantity, setQuantity] = useState<number>(10);
-  const [purchasePrice, setPurchasePrice] = useState<number>(products[0]?.purchasePrice || 100);
-  const [gstRate, setGstRate] = useState<number>(products[0]?.gstRate || 18);
-  const [paymentStatus, setPaymentStatus] = useState<'Paid' | 'Unpaid'>('Paid');
-  const [notes, setNotes] = useState('Stock procurement');
+  const isEdit = Boolean(initialPurchase);
+  const firstItem = initialPurchase?.items?.[0];
+
+  const [supplierId, setSupplierId] = useState<number>(initialPurchase?.supplierId ?? (suppliers[0]?.id || 1));
+  const [supplierBillNumber, setSupplierBillNumber] = useState(initialPurchase?.supplierBillNumber || '');
+  const [purchaseDate, setPurchaseDate] = useState(() => initialPurchase?.purchaseDate || getTodayDateString());
+  const [selectedProductId, setSelectedProductId] = useState<number>(firstItem?.productId ?? (products[0]?.id || 1));
+  const [quantity, setQuantity] = useState<number>(firstItem?.quantity ?? 10);
+  const [purchasePrice, setPurchasePrice] = useState<number>(firstItem?.purchasePrice ?? (products[0]?.purchasePrice || 100));
+  const [gstRate, setGstRate] = useState<number>(firstItem?.gstRate ?? (products[0]?.gstRate || 18));
+  const [paymentStatus, setPaymentStatus] = useState<'Paid' | 'Unpaid'>(initialPurchase?.paymentStatus || 'Paid');
+  const [notes, setNotes] = useState(initialPurchase?.notes || 'Stock procurement');
 
   const selectedSupplier = suppliers.find((s) => s.id === supplierId) || suppliers[0];
   const selectedProduct = products.find((p) => p.id === selectedProductId) || products[0];
@@ -44,17 +49,17 @@ export function AddPurchaseModal({
       return;
     }
 
-    const uniqueId = generateUniqueId();
-    const newPurchase: Purchase = {
+    const uniqueId = initialPurchase?.id || generateUniqueId();
+    const savedPurchase: Purchase = {
       id: uniqueId,
-      purchaseNumber: nextPurchaseNum,
+      purchaseNumber: initialPurchase?.purchaseNumber || nextPurchaseNum,
       supplierId: selectedSupplier.id,
       supplierName: selectedSupplier.businessName || selectedSupplier.name,
       supplierBillNumber: supplierBillNumber.trim() || undefined,
       purchaseDate,
       items: [
         {
-          id: `pi-${uniqueId}`,
+          id: firstItem?.id || `pi-${uniqueId}`,
           productId: selectedProduct.id,
           productName: selectedProduct.name,
           quantity,
@@ -70,19 +75,50 @@ export function AddPurchaseModal({
       notes,
     };
 
-    // Increment product stock
+    // Calculate stock reconciliation
+    const oldProductId = firstItem?.productId;
+    const oldQuantity = firstItem?.quantity || 0;
+
     const updatedProducts = products.map((prod) => {
-      if (prod.id === selectedProduct.id) {
-        return {
-          ...prod,
-          currentStock: prod.currentStock + quantity,
-          purchasePrice, // update latest cost price
-        };
+      if (isEdit) {
+        if (prod.id === oldProductId && prod.id === selectedProduct.id) {
+          // Same product: net stock difference
+          return {
+            ...prod,
+            currentStock: Math.max(0, prod.currentStock - oldQuantity + quantity),
+            purchasePrice,
+          };
+        }
+        if (prod.id === oldProductId) {
+          // Revert old product stock
+          return {
+            ...prod,
+            currentStock: Math.max(0, prod.currentStock - oldQuantity),
+          };
+        }
+        if (prod.id === selectedProduct.id) {
+          // Add new product stock
+          return {
+            ...prod,
+            currentStock: prod.currentStock + quantity,
+            purchasePrice,
+          };
+        }
+        return prod;
+      } else {
+        // New purchase: just increment stock
+        if (prod.id === selectedProduct.id) {
+          return {
+            ...prod,
+            currentStock: prod.currentStock + quantity,
+            purchasePrice,
+          };
+        }
+        return prod;
       }
-      return prod;
     });
 
-    onSave(newPurchase, updatedProducts);
+    onSave(savedPurchase, updatedProducts);
   };
 
   return (
@@ -91,7 +127,11 @@ export function AddPurchaseModal({
         <div className="flex justify-between items-center px-6 py-4 bg-slate-900 text-white">
           <div className="flex items-center gap-2">
             <ShoppingBag className="w-5 h-5 text-emerald-400" />
-            <h3 className="font-bold text-base">Record Purchase Bill ({nextPurchaseNum})</h3>
+            <h3 className="font-bold text-base">
+              {isEdit
+                ? `Edit Purchase Bill (${initialPurchase?.purchaseNumber})`
+                : `Record Purchase Bill (${nextPurchaseNum})`}
+            </h3>
           </div>
           <button onClick={onClose} className="p-1 text-slate-400 hover:text-white rounded">
             <X className="w-4 h-4" />
@@ -252,7 +292,7 @@ export function AddPurchaseModal({
               type="submit"
               className="px-4 py-2 text-xs font-bold text-white bg-emerald-600 hover:bg-emerald-700 rounded shadow"
             >
-              Save Purchase & Add Stock
+              {isEdit ? 'Update Purchase Bill (अपडेट करें)' : 'Save Purchase & Add Stock'}
             </button>
           </div>
         </form>

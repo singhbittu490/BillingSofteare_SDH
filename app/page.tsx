@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import {
+  AuthUser,
   CompanySettings,
   Customer,
   Expense,
@@ -44,6 +45,7 @@ import {
   Clock,
   DollarSign,
   TrendingUp,
+  LogOut,
 } from 'lucide-react';
 import { TaxInvoiceModal } from '@/components/TaxInvoiceModal';
 import { CreateInvoiceModal } from '@/components/CreateInvoiceModal';
@@ -54,6 +56,7 @@ import { AddCustomerModal } from '@/components/AddCustomerModal';
 import { AddExpenseModal } from '@/components/AddExpenseModal';
 import { AddPurchaseModal } from '@/components/AddPurchaseModal';
 import { HostingerGuideModal } from '@/components/HostingerGuideModal';
+import { LoginScreen } from '@/components/LoginScreen';
 import { downloadInvoicePDFDirect, openInvoicePDFInNewTab } from '@/lib/invoice-pdf';
 
 type NavTab =
@@ -75,12 +78,19 @@ export default function SmartBillApp() {
   const [suppliers] = useState<Supplier[]>(initialSuppliers);
   const [purchases, setPurchases] = useState<Purchase[]>(initialPurchases);
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isMounted, setIsMounted] = useState(false);
 
   // Load from localStorage asynchronously after mount to prevent SSR hydration mismatch & cascading renders
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
+        const savedUser = localStorage.getItem('smartbill_remember_user');
+        if (savedUser) {
+          const parsedUser = JSON.parse(savedUser);
+          if (parsedUser && parsedUser.email) setCurrentUser(parsedUser);
+        }
+
         const savedInvoices = localStorage.getItem('smartbill_invoices');
         if (savedInvoices) {
           const parsed = JSON.parse(savedInvoices);
@@ -316,14 +326,46 @@ export default function SmartBillApp() {
     document.body.removeChild(link);
   };
 
+  const handleLogout = () => {
+    if (confirm('क्या आप लॉगआउट करना चाहते हैं? (Do you want to log out of SmartBill?)')) {
+      try {
+        localStorage.removeItem('smartbill_remember_user');
+      } catch {}
+      setCurrentUser(null);
+    }
+  };
+
+  // SSR Loading state
+  if (!isMounted) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center text-white font-sans">
+        <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black text-2xl shadow-xl shadow-blue-500/20 mb-4 animate-pulse">
+          S
+        </div>
+        <div className="w-6 h-6 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
+        <p className="mt-3 text-xs text-slate-400 font-medium">SmartBill Portal Loading...</p>
+      </div>
+    );
+  }
+
+  // Authentication Gate: User MUST login to access dashboard
+  if (!currentUser) {
+    return (
+      <LoginScreen
+        onLogin={(user) => setCurrentUser(user)}
+        defaultEmail="singhbittu490@gmail.com"
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans flex flex-col selection:bg-blue-100 selection:text-blue-900">
-      {/* Top Banner: Hostinger Deployment Status */}
+      {/* Top Banner: Hostinger Deployment Status & Auth User */}
       <div className="bg-slate-900 text-slate-300 text-xs px-4 py-2 flex flex-wrap justify-between items-center border-b border-slate-800">
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span>
-            <strong>SmartBill Live Instance</strong> | GSTIN: <span className="font-mono text-white">{company.gstin}</span> ({company.state})
+            <strong>SmartBill Live Instance</strong> | User: <span className="font-semibold text-white">{currentUser.name}</span> ({currentUser.role}) | GSTIN: <span className="font-mono text-white">{company.gstin}</span>
           </span>
         </div>
         <div className="flex items-center gap-3 mt-1 sm:mt-0">
@@ -388,6 +430,34 @@ export default function SmartBillApp() {
               <Receipt className="w-3.5 h-3.5" />
               <span>Log Expense</span>
             </button>
+
+            {/* User Profile Badge & Logout */}
+            <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+              <div
+                className="w-8 h-8 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-bold text-xs shadow-sm"
+                title={`Logged in as ${currentUser.name} (${currentUser.email})`}
+              >
+                {currentUser.name.charAt(0).toUpperCase()}
+              </div>
+              <div className="hidden lg:block text-left">
+                <div className="text-xs font-bold text-slate-800 leading-tight truncate max-w-[130px]">
+                  {currentUser.name}
+                </div>
+                <div className="text-[10px] text-emerald-600 font-semibold flex items-center gap-1">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                  {currentUser.role}
+                </div>
+              </div>
+              <button
+                id="btn-user-logout"
+                onClick={handleLogout}
+                className="inline-flex items-center space-x-1 p-2 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg text-xs font-medium transition-colors border border-transparent hover:border-rose-200"
+                title="Log out of SmartBill (लॉगआउट करें)"
+              >
+                <LogOut className="w-4 h-4" />
+                <span className="hidden sm:inline">Logout</span>
+              </button>
+            </div>
           </div>
         </div>
 

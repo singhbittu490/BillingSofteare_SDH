@@ -19,6 +19,15 @@ export interface CompanySettings {
   authorizedSignatory: string;
 }
 
+export interface AuthUser {
+  id: string;
+  name: string;
+  email: string;
+  role: 'Owner' | 'Admin' | 'Accountant' | 'Sales Staff';
+  phone?: string;
+  lastLogin: string;
+}
+
 export interface Product {
   id: number;
   name: string;

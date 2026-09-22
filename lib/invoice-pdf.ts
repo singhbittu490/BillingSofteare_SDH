@@ -30,25 +30,40 @@ export function generateInvoicePDF(invoice: Invoice, company: CompanySettings): 
 
   currentY = margin + 14;
 
+  // Company Logo & Details
+  let textStartX = margin + 4;
+  if (company.logoUrl) {
+    try {
+      if (company.logoUrl.startsWith('data:image/')) {
+        const formatMatch = company.logoUrl.match(/^data:image\/(png|jpeg|jpg|webp)/i);
+        const format = formatMatch ? (formatMatch[1].toUpperCase() === 'JPG' ? 'JPEG' : formatMatch[1].toUpperCase()) : 'PNG';
+        doc.addImage(company.logoUrl, format, margin + 4, currentY - 2, 18, 18);
+        textStartX = margin + 25;
+      }
+    } catch (e) {
+      console.warn('Could not render logo in PDF:', e);
+    }
+  }
+
   // Company Details (Left)
   doc.setTextColor(15, 23, 42);
   doc.setFont('helvetica', 'bold');
   doc.setFontSize(13);
-  doc.text(company.companyName, margin + 4, currentY);
+  doc.text(company.companyName, textStartX, currentY);
 
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(71, 85, 105);
   currentY += 4.5;
-  doc.text(company.address, margin + 4, currentY);
+  doc.text(company.address, textStartX, currentY);
   currentY += 4;
-  doc.text(`Mobile: ${company.mobile} | Email: ${company.email}`, margin + 4, currentY);
+  doc.text(`Mobile: ${company.mobile} | Email: ${company.email}`, textStartX, currentY);
   currentY += 4;
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(15, 23, 42);
-  doc.text(`GSTIN: ${company.gstin}`, margin + 4, currentY);
+  doc.text(`GSTIN: ${company.gstin}`, textStartX, currentY);
   doc.setFont('helvetica', 'normal');
-  doc.text(` | State: ${company.state} (Code: ${company.stateCode})`, margin + 4 + doc.getTextWidth(`GSTIN: ${company.gstin}`), currentY);
+  doc.text(` | State: ${company.state} (${company.stateCode})`, textStartX + doc.getTextWidth(`GSTIN: ${company.gstin}`), currentY);
 
   // Invoice Metadata (Right Box)
   const metaBoxX = 125;

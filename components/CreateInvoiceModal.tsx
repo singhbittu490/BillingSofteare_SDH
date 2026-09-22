@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { CompanySettings, Customer, Invoice, InvoiceItem, Product } from '@/lib/types';
-import { Plus, Trash2, X, Calculator, UserCheck, AlertCircle } from 'lucide-react';
+import { Plus, Trash2, X, Calculator, UserCheck, AlertCircle, Hash, RotateCcw, FileText } from 'lucide-react';
 import { formatINR } from '@/lib/initial-data';
 import { generateUniqueId, getTodayDateString, getDueDateString } from '@/lib/utils';
 
@@ -35,6 +35,7 @@ export function CreateInvoiceModal({
   onClose,
   onSave,
 }: CreateInvoiceModalProps) {
+  const [invoiceNumber, setInvoiceNumber] = useState<string>(nextInvoiceNum);
   const [selectedCustomerId, setSelectedCustomerId] = useState<number>(customers[0]?.id || 1);
   const [invoiceDate, setInvoiceDate] = useState<string>(() => getTodayDateString());
   const [dueDate, setDueDate] = useState<string>(() => getDueDateString(15));
@@ -189,6 +190,11 @@ export function CreateInvoiceModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (!invoiceNumber.trim()) {
+      alert('कृपया इनवॉइस / बिल नंबर दर्ज करें (Please enter a valid Invoice Number).');
+      return;
+    }
+
     let targetCustomerName = '';
     let targetCustomerGstin = '';
     let targetCustomerAddress = '';
@@ -239,7 +245,7 @@ export function CreateInvoiceModal({
 
     const newInvoice: Invoice = {
       id: generateUniqueId(),
-      invoiceNumber: nextInvoiceNum,
+      invoiceNumber: invoiceNumber.trim(),
       invoiceDate,
       dueDate,
       customerId: targetCustomerId,
@@ -277,7 +283,12 @@ export function CreateInvoiceModal({
         <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white">
           <div className="flex items-center space-x-2">
             <Calculator className="w-5 h-5 text-blue-400" />
-            <h2 className="font-bold text-base sm:text-lg">Create GST Tax Invoice ({nextInvoiceNum})</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="font-bold text-base sm:text-lg">Create GST Tax Invoice</h2>
+              <span className="px-2 py-0.5 rounded bg-blue-500/30 text-blue-200 font-mono text-xs font-semibold border border-blue-400/30">
+                #{invoiceNumber || 'NEW'}
+              </span>
+            </div>
           </div>
           <button
             onClick={onClose}
@@ -395,30 +406,60 @@ export function CreateInvoiceModal({
               </p>
             </div>
 
-            {/* Dates */}
-            <div className="grid grid-cols-2 gap-2 text-xs">
+            {/* Invoice Number & Dates */}
+            <div className="text-xs space-y-2 bg-white p-3 rounded border border-slate-200">
               <div>
-                <label className="block font-semibold text-slate-700 mb-1">Invoice Date:</label>
-                <input
-                  type="date"
-                  value={invoiceDate}
-                  onChange={(e) => setInvoiceDate(e.target.value)}
-                  className="w-full border border-slate-300 rounded p-2 bg-white"
-                />
+                <div className="flex items-center justify-between mb-1">
+                  <label htmlFor="input-invoice-number" className="font-bold text-slate-800 flex items-center gap-1">
+                    <FileText className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Invoice No. (बिल नंबर) *</span>
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setInvoiceNumber(nextInvoiceNum)}
+                    className="text-[11px] text-blue-600 hover:text-blue-800 flex items-center gap-1 font-semibold hover:underline"
+                    title="Auto-fill sequential invoice number"
+                  >
+                    <RotateCcw className="w-3 h-3" /> Auto
+                  </button>
+                </div>
+                <div className="relative">
+                  <Hash className="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5" />
+                  <input
+                    id="input-invoice-number"
+                    type="text"
+                    required
+                    value={invoiceNumber}
+                    onChange={(e) => setInvoiceNumber(e.target.value)}
+                    placeholder="e.g. INV-2026-1001"
+                    className="w-full pl-8 pr-2.5 py-1.5 border border-slate-300 rounded font-mono font-bold text-blue-900 bg-blue-50/40 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                  />
+                </div>
+                <div className="flex items-center justify-between text-[10px] text-slate-500 mt-1">
+                  <span>Prefix: <strong className="font-mono text-slate-700">{company.invoicePrefix}</strong></span>
+                  <span className="text-slate-400">अपनी पसंद का नंबर लिखें</span>
+                </div>
               </div>
-              <div>
-                <label className="block font-semibold text-slate-700 mb-1">Due Date:</label>
-                <input
-                  type="date"
-                  value={dueDate}
-                  onChange={(e) => setDueDate(e.target.value)}
-                  className="w-full border border-slate-300 rounded p-2 bg-white"
-                />
-              </div>
-              <div className="col-span-2 pt-1">
-                <span className="text-[11px] text-slate-500 font-mono">
-                  Invoice Prefix: <strong>{company.invoicePrefix}</strong>
-                </span>
+
+              <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-100">
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Invoice Date:</label>
+                  <input
+                    type="date"
+                    value={invoiceDate}
+                    onChange={(e) => setInvoiceDate(e.target.value)}
+                    className="w-full border border-slate-300 rounded p-1.5 bg-white text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block font-semibold text-slate-700 mb-1">Due Date:</label>
+                  <input
+                    type="date"
+                    value={dueDate}
+                    onChange={(e) => setDueDate(e.target.value)}
+                    className="w-full border border-slate-300 rounded p-1.5 bg-white text-xs"
+                  />
+                </div>
               </div>
             </div>
           </div>

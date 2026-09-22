@@ -187,13 +187,23 @@ export function TaxInvoiceModal({ invoice, company, onClose }: TaxInvoiceModalPr
           <div className="border-b-2 border-slate-900 pb-4 mb-4">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <div className="w-8 h-8 rounded bg-blue-600 text-white flex items-center justify-center font-bold text-lg">
-                    S
-                  </div>
+                <div className="flex items-center gap-3 mb-1">
+                  {company.logoUrl ? (
+                    <img
+                      src={company.logoUrl}
+                      alt={company.companyName}
+                      className="h-14 max-w-[150px] object-contain rounded border border-slate-200 p-1 bg-white flex-shrink-0"
+                    />
+                  ) : (
+                    <div className="w-10 h-10 rounded-lg bg-blue-600 text-white flex items-center justify-center font-bold text-xl flex-shrink-0 shadow-xs">
+                      {company.companyName.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div>
                     <h1 className="text-xl sm:text-2xl font-black tracking-tight text-slate-900">{company.companyName}</h1>
-                    <p className="text-xs text-slate-500 font-medium">{company.legalName}</p>
+                    {company.legalName && company.legalName !== company.companyName && (
+                      <p className="text-xs text-slate-500 font-medium">{company.legalName}</p>
+                    )}
                   </div>
                 </div>
                 <p className="text-xs text-slate-600">{company.address}, {company.city}, {company.state} - {company.pinCode}</p>

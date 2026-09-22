@@ -367,42 +367,22 @@ export default function SmartBillApp() {
 
   return (
     <div className="min-h-screen bg-slate-100 text-slate-800 font-sans flex flex-col selection:bg-blue-100 selection:text-blue-900">
-      {/* Top Banner: Hostinger Deployment Status & Auth User */}
-      <div className="bg-slate-900 text-slate-300 text-xs px-4 py-2 flex flex-wrap justify-between items-center border-b border-slate-800">
-        <div className="flex items-center gap-2">
-          <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          <span>
-            <strong>SmartBill Multi-Company Cloud</strong> | User: <span className="font-semibold text-white">{currentUser.name}</span> ({currentUser.role}) | Company: <span className="font-semibold text-blue-400">{company.companyName}</span> ({company.state}) | GSTIN: <span className="font-mono text-white">{company.gstin}</span>
-          </span>
-        </div>
-        <div className="flex items-center gap-3 mt-1 sm:mt-0">
-          <button
-            onClick={() => setIsHostingerGuideOpen(true)}
-            className="inline-flex items-center gap-1 text-emerald-400 hover:text-emerald-300 font-medium transition-colors"
-          >
-            <Server className="w-3.5 h-3.5" />
-            <span>Hostinger cPanel / PHP Package & SQL</span>
-          </button>
-          <span className="text-slate-600">|</span>
-          <button
-            onClick={resetAllData}
-            className="text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1"
-            title="Reset company demo data"
-          >
-            <RotateCcw className="w-3 h-3" />
-            <span className="hidden sm:inline">Reset Company Data</span>
-          </button>
-        </div>
-      </div>
-
       {/* Main Header & Nav */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-xs">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row md:items-center justify-between py-3 gap-3">
           {/* Logo & Company Info */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black text-xl shadow-md flex-shrink-0">
-              {company.companyName.charAt(0).toUpperCase()}
-            </div>
+            {company.logoUrl ? (
+              <img
+                src={company.logoUrl}
+                alt={company.companyName}
+                className="w-11 h-11 rounded-xl object-contain bg-white border border-slate-200 p-1 shadow-xs flex-shrink-0"
+              />
+            ) : (
+              <div className="w-11 h-11 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black text-xl shadow-md flex-shrink-0">
+                {company.companyName.charAt(0).toUpperCase()}
+              </div>
+            )}
             <div>
               <div className="flex items-center gap-2">
                 <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">{company.companyName}</h1>
@@ -1440,8 +1420,31 @@ $db_pass = 'your_hostinger_password';`}
       </main>
 
       {/* Global Footer */}
-      <footer className="bg-white border-t border-slate-200 py-4 px-6 text-center text-xs text-slate-500">
-        SmartBill &copy; 2026. Built with GST compliance for Indian businesses & Hostinger deployment.
+      <footer className="bg-white border-t border-slate-200 py-3 px-6 text-xs text-slate-500">
+        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-slate-600">
+            <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+            <span>
+              <strong>{company.companyName}</strong> &bull; User: {currentUser.name} ({currentUser.role}) &bull; GSTIN: <span className="font-mono">{company.gstin}</span>
+            </span>
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setIsHostingerGuideOpen(true)}
+              className="text-slate-500 hover:text-blue-600 transition-colors"
+            >
+              Hostinger cPanel Guide
+            </button>
+            <span>&bull;</span>
+            <button
+              onClick={resetAllData}
+              className="text-slate-400 hover:text-rose-600 transition-colors"
+              title="Reset company demo data"
+            >
+              Reset Demo Data
+            </button>
+          </div>
+        </div>
       </footer>
 
       {/* Modals */}

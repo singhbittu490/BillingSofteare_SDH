@@ -17,6 +17,7 @@ export interface CompanySettings {
   upiId: string;
   termsConditions: string;
   authorizedSignatory: string;
+  logoUrl?: string;
 }
 
 export interface AuthUser {

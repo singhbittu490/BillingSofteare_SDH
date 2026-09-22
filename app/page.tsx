@@ -46,6 +46,7 @@ import {
   DollarSign,
   TrendingUp,
   LogOut,
+  Building2,
 } from 'lucide-react';
 import { TaxInvoiceModal } from '@/components/TaxInvoiceModal';
 import { CreateInvoiceModal } from '@/components/CreateInvoiceModal';
@@ -57,7 +58,9 @@ import { AddExpenseModal } from '@/components/AddExpenseModal';
 import { AddPurchaseModal } from '@/components/AddPurchaseModal';
 import { HostingerGuideModal } from '@/components/HostingerGuideModal';
 import { LoginScreen } from '@/components/LoginScreen';
+import { CompanyProfileTab } from '@/components/CompanyProfileTab';
 import { downloadInvoicePDFDirect, openInvoicePDFInNewTab } from '@/lib/invoice-pdf';
+import { loadIsolatedTenantData } from '@/lib/tenant-storage';
 
 type NavTab =
   | 'dashboard'
@@ -66,20 +69,37 @@ type NavTab =
   | 'customers'
   | 'purchases'
   | 'expenses'
+  | 'profile'
   | 'reports'
   | 'hostinger';
 
 export default function SmartBillApp() {
   // Core Data States initialized consistently for SSR
-  const [company] = useState<CompanySettings>(initialCompanySettings);
+  const [company, setCompany] = useState<CompanySettings>(initialCompanySettings);
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [customers, setCustomers] = useState<Customer[]>(initialCustomers);
-  const [suppliers] = useState<Supplier[]>(initialSuppliers);
+  const [suppliers, setSuppliers] = useState<Supplier[]>(initialSuppliers);
   const [purchases, setPurchases] = useState<Purchase[]>(initialPurchases);
   const [expenses, setExpenses] = useState<Expense[]>(initialExpenses);
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
   const [isMounted, setIsMounted] = useState(false);
+
+  // Helper to load isolated tenant data for a specific logged-in user
+  const applyTenantData = (user: AuthUser) => {
+    try {
+      const tenant = loadIsolatedTenantData(user.id);
+      setCompany(tenant.company);
+      setInvoices(tenant.invoices);
+      setProducts(tenant.products);
+      setCustomers(tenant.customers);
+      setSuppliers(tenant.suppliers);
+      setPurchases(tenant.purchases);
+      setExpenses(tenant.expenses);
+    } catch (err) {
+      console.error('Error applying tenant data:', err);
+    }
+  };
 
   // Load from localStorage asynchronously after mount to prevent SSR hydration mismatch & cascading renders
   useEffect(() => {
@@ -88,37 +108,10 @@ export default function SmartBillApp() {
         const savedUser = localStorage.getItem('smartbill_remember_user');
         if (savedUser) {
           const parsedUser = JSON.parse(savedUser);
-          if (parsedUser && parsedUser.email) setCurrentUser(parsedUser);
-        }
-
-        const savedInvoices = localStorage.getItem('smartbill_invoices');
-        if (savedInvoices) {
-          const parsed = JSON.parse(savedInvoices);
-          if (Array.isArray(parsed) && parsed.length > 0) setInvoices(parsed);
-        }
-
-        const savedProducts = localStorage.getItem('smartbill_products');
-        if (savedProducts) {
-          const parsed = JSON.parse(savedProducts);
-          if (Array.isArray(parsed) && parsed.length > 0) setProducts(parsed);
-        }
-
-        const savedCustomers = localStorage.getItem('smartbill_customers');
-        if (savedCustomers) {
-          const parsed = JSON.parse(savedCustomers);
-          if (Array.isArray(parsed) && parsed.length > 0) setCustomers(parsed);
-        }
-
-        const savedPurchases = localStorage.getItem('smartbill_purchases');
-        if (savedPurchases) {
-          const parsed = JSON.parse(savedPurchases);
-          if (Array.isArray(parsed) && parsed.length > 0) setPurchases(parsed);
-        }
-
-        const savedExpenses = localStorage.getItem('smartbill_expenses');
-        if (savedExpenses) {
-          const parsed = JSON.parse(savedExpenses);
-          if (Array.isArray(parsed) && parsed.length > 0) setExpenses(parsed);
+          if (parsedUser && parsedUser.id) {
+            setCurrentUser(parsedUser);
+            applyTenantData(parsedUser);
+          }
         }
       } catch (e) {
         console.error('Error loading saved data from localStorage:', e);
@@ -146,51 +139,62 @@ export default function SmartBillApp() {
   const [isAddingPurchase, setIsAddingPurchase] = useState(false);
   const [isHostingerGuideOpen, setIsHostingerGuideOpen] = useState(false);
 
-  // Save to local storage on changes only once client has mounted and loaded
+  // Save to isolated user-specific storage on changes
   useEffect(() => {
-    if (!isMounted) return;
+    if (!isMounted || !currentUser) return;
     try {
-      localStorage.setItem('smartbill_invoices', JSON.stringify(invoices));
+      localStorage.setItem(`smartbill_${currentUser.id}_company`, JSON.stringify(company));
     } catch {}
-  }, [invoices, isMounted]);
+  }, [company, isMounted, currentUser]);
 
   useEffect(() => {
-    if (!isMounted) return;
+    if (!isMounted || !currentUser) return;
     try {
-      localStorage.setItem('smartbill_products', JSON.stringify(products));
+      localStorage.setItem(`smartbill_${currentUser.id}_invoices`, JSON.stringify(invoices));
     } catch {}
-  }, [products, isMounted]);
+  }, [invoices, isMounted, currentUser]);
 
   useEffect(() => {
-    if (!isMounted) return;
+    if (!isMounted || !currentUser) return;
     try {
-      localStorage.setItem('smartbill_customers', JSON.stringify(customers));
+      localStorage.setItem(`smartbill_${currentUser.id}_products`, JSON.stringify(products));
     } catch {}
-  }, [customers, isMounted]);
+  }, [products, isMounted, currentUser]);
 
   useEffect(() => {
-    if (!isMounted) return;
+    if (!isMounted || !currentUser) return;
     try {
-      localStorage.setItem('smartbill_purchases', JSON.stringify(purchases));
+      localStorage.setItem(`smartbill_${currentUser.id}_customers`, JSON.stringify(customers));
     } catch {}
-  }, [purchases, isMounted]);
+  }, [customers, isMounted, currentUser]);
 
   useEffect(() => {
-    if (!isMounted) return;
+    if (!isMounted || !currentUser) return;
     try {
-      localStorage.setItem('smartbill_expenses', JSON.stringify(expenses));
+      localStorage.setItem(`smartbill_${currentUser.id}_purchases`, JSON.stringify(purchases));
     } catch {}
-  }, [expenses, isMounted]);
+  }, [purchases, isMounted, currentUser]);
+
+  useEffect(() => {
+    if (!isMounted || !currentUser) return;
+    try {
+      localStorage.setItem(`smartbill_${currentUser.id}_expenses`, JSON.stringify(expenses));
+    } catch {}
+  }, [expenses, isMounted, currentUser]);
 
   const resetAllData = () => {
-    if (confirm('Reset all demo invoices, products, and expenses to default sample data?')) {
-      localStorage.clear();
-      setInvoices(initialInvoices);
-      setProducts(initialProducts);
-      setCustomers(initialCustomers);
-      setPurchases(initialPurchases);
-      setExpenses(initialExpenses);
-      alert('Sample data restored!');
+    if (!currentUser) return;
+    if (confirm(`Reset ${company.companyName} data back to original defaults?`)) {
+      try {
+        localStorage.removeItem(`smartbill_${currentUser.id}_company`);
+        localStorage.removeItem(`smartbill_${currentUser.id}_invoices`);
+        localStorage.removeItem(`smartbill_${currentUser.id}_products`);
+        localStorage.removeItem(`smartbill_${currentUser.id}_customers`);
+        localStorage.removeItem(`smartbill_${currentUser.id}_purchases`);
+        localStorage.removeItem(`smartbill_${currentUser.id}_expenses`);
+      } catch {}
+      applyTenantData(currentUser);
+      alert('Company profile & data restored to defaults!');
     }
   };
 
@@ -206,8 +210,8 @@ export default function SmartBillApp() {
   );
   const lowStockProducts = products.filter((p) => p.currentStock <= p.minimumStock && p.currentStock < 900);
 
-  // Next Invoice Number
-  const nextInvoiceNumber = `INV-2026-${1000 + invoices.length + 1}`;
+  // Next Invoice Number dynamically based on the company's invoice prefix
+  const nextInvoiceNumber = `${company.invoicePrefix || 'INV'}-${1000 + invoices.length + 1}`;
   const nextPurchaseNumber = `PUR-2026-${String(purchases.length + 1).padStart(4, '0')}`;
 
   // Invoice Handlers
@@ -352,7 +356,10 @@ export default function SmartBillApp() {
   if (!currentUser) {
     return (
       <LoginScreen
-        onLogin={(user) => setCurrentUser(user)}
+        onLogin={(user) => {
+          setCurrentUser(user);
+          applyTenantData(user);
+        }}
         defaultEmail="singhbittu490@gmail.com"
       />
     );
@@ -365,7 +372,7 @@ export default function SmartBillApp() {
         <div className="flex items-center gap-2">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
           <span>
-            <strong>SmartBill Live Instance</strong> | User: <span className="font-semibold text-white">{currentUser.name}</span> ({currentUser.role}) | GSTIN: <span className="font-mono text-white">{company.gstin}</span>
+            <strong>SmartBill Multi-Company Cloud</strong> | User: <span className="font-semibold text-white">{currentUser.name}</span> ({currentUser.role}) | Company: <span className="font-semibold text-blue-400">{company.companyName}</span> ({company.state}) | GSTIN: <span className="font-mono text-white">{company.gstin}</span>
           </span>
         </div>
         <div className="flex items-center gap-3 mt-1 sm:mt-0">
@@ -380,10 +387,10 @@ export default function SmartBillApp() {
           <button
             onClick={resetAllData}
             className="text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1"
-            title="Reset sample data"
+            title="Reset company demo data"
           >
             <RotateCcw className="w-3 h-3" />
-            <span className="hidden sm:inline">Reset Demo</span>
+            <span className="hidden sm:inline">Reset Company Data</span>
           </button>
         </div>
       </div>
@@ -391,19 +398,21 @@ export default function SmartBillApp() {
       {/* Main Header & Nav */}
       <header className="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 flex flex-col md:flex-row md:items-center justify-between py-3 gap-3">
-          {/* Logo & Info */}
+          {/* Logo & Company Info */}
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-lg bg-blue-600 text-white flex items-center justify-center font-black text-xl shadow-md">
-              S
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center font-black text-xl shadow-md flex-shrink-0">
+              {company.companyName.charAt(0).toUpperCase()}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">SmartBill</h1>
+                <h1 className="text-lg sm:text-xl font-black text-slate-900 tracking-tight">{company.companyName}</h1>
                 <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-100 text-blue-800 border border-blue-200 uppercase tracking-wider">
-                  GST 2026
+                  {company.stateCode ? `State: ${company.stateCode}` : 'GST'}
                 </span>
               </div>
-              <p className="text-xs text-slate-500 font-medium">Billing & Invoicing ERP for Hostinger</p>
+              <p className="text-xs text-slate-500 font-medium">
+                GSTIN: <span className="font-mono text-slate-700 font-semibold">{company.gstin}</span> &bull; {company.city}, {company.state}
+              </p>
             </div>
           </div>
 
@@ -414,7 +423,20 @@ export default function SmartBillApp() {
               className="inline-flex items-center space-x-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow transition-colors"
             >
               <Plus className="w-4 h-4" />
-              <span>Create New Invoice</span>
+              <span>Create Invoice</span>
+            </button>
+            <button
+              id="btn-edit-company-profile"
+              onClick={() => setActiveTab('profile')}
+              className={`inline-flex items-center space-x-1 px-3 py-2 rounded-lg text-xs font-semibold border transition-colors ${
+                activeTab === 'profile'
+                  ? 'bg-blue-50 text-blue-700 border-blue-300'
+                  : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-300'
+              }`}
+              title="Manage company profile, GSTIN, and Bank details"
+            >
+              <Building2 className="w-3.5 h-3.5 text-blue-600" />
+              <span>Company Profile</span>
             </button>
             <button
               onClick={() => setIsAddingProduct(true)}
@@ -470,6 +492,7 @@ export default function SmartBillApp() {
             { id: 'customers', label: `Customers (${customers.length})`, icon: Users },
             { id: 'purchases', label: `Purchases (${purchases.length})`, icon: ShoppingBag },
             { id: 'expenses', label: `Expenses (${expenses.length})`, icon: Receipt },
+            { id: 'profile', label: 'Company Profile (कंपनी)', icon: Building2 },
             { id: 'reports', label: 'GST & P&L Reports', icon: BarChart3 },
             { id: 'hostinger', label: 'Hostinger Export', icon: Server },
           ].map((tab) => {
@@ -1322,6 +1345,23 @@ export default function SmartBillApp() {
               </div>
             </div>
           </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* TAB: COMPANY PROFILE (ISOLATED MULTI-TENANT MANAGEMENT) */}
+        {/* ------------------------------------------------------------- */}
+        {activeTab === 'profile' && (
+          <CompanyProfileTab
+            key={currentUser.id}
+            currentUser={currentUser}
+            company={company}
+            onUpdateCompany={(updated) => {
+              setCompany(updated);
+              try {
+                localStorage.setItem(`smartbill_${currentUser.id}_company`, JSON.stringify(updated));
+              } catch {}
+            }}
+          />
         )}
 
         {/* ------------------------------------------------------------- */}

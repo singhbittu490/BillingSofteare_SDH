@@ -4,7 +4,6 @@ import React, { useState } from 'react';
 import { AuthUser } from '@/lib/types';
 import {
   INDIAN_STATES,
-  DEFAULT_TENANT_ACCOUNTS,
   registerTenantUser,
   getRegisteredUsers,
 } from '@/lib/tenant-storage';
@@ -19,7 +18,6 @@ import {
   ShieldCheck,
   CheckCircle2,
   ArrowRight,
-  Sparkles,
   MapPin,
   Receipt,
   Users,
@@ -30,12 +28,12 @@ interface LoginScreenProps {
   defaultEmail?: string;
 }
 
-export function LoginScreen({ onLogin, defaultEmail = 'singhbittu490@gmail.com' }: LoginScreenProps) {
+export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
   const [mode, setMode] = useState<'login' | 'register'>('login');
   const [email, setEmail] = useState(defaultEmail);
-  const [password, setPassword] = useState('admin123');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberMe, setRememberMe] = useState(true);
+  const [rememberMe, setRememberMe] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -53,7 +51,7 @@ export function LoginScreen({ onLogin, defaultEmail = 'singhbittu490@gmail.com' 
     setErrorMessage('');
 
     if (!email.trim() || !password.trim()) {
-      setErrorMessage('कृपया ईमेल और पासवर्ड दर्ज करें (Please enter email & password)');
+      setErrorMessage('कृपया यूजर आईडी/ईमेल और पासवर्ड दर्ज करें (Please enter User ID/Email & Password)');
       return;
     }
 
@@ -65,7 +63,9 @@ export function LoginScreen({ onLogin, defaultEmail = 'singhbittu490@gmail.com' 
 
       // Find from registered users registry
       const registered = getRegisteredUsers();
-      const existing = registered.find((u) => u.email.toLowerCase() === cleanEmail);
+      const existing = registered.find(
+        (u) => u.email.toLowerCase() === cleanEmail || u.id.toLowerCase() === cleanEmail
+      );
 
       let user: AuthUser;
       if (existing) {
@@ -77,11 +77,11 @@ export function LoginScreen({ onLogin, defaultEmail = 'singhbittu490@gmail.com' 
           phone: existing.phone,
           lastLogin: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
         };
-      } else if (cleanEmail.includes('singhbittu')) {
+      } else if (cleanEmail.includes('singhbittu') || cleanEmail.includes('bittu')) {
         user = {
           id: 'usr_bittu_singh',
           name: 'Bittu Singh',
-          email: cleanEmail,
+          email: cleanEmail.includes('@') ? cleanEmail : `${cleanEmail}@smarttech.in`,
           role: 'Owner',
           phone: '+91 98765 43210',
           lastLogin: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
@@ -90,18 +90,19 @@ export function LoginScreen({ onLogin, defaultEmail = 'singhbittu490@gmail.com' 
         user = {
           id: 'usr_sharma_hardware',
           name: 'Rajesh Sharma',
-          email: cleanEmail,
+          email: cleanEmail.includes('@') ? cleanEmail : `${cleanEmail}@hardware.in`,
           role: 'Owner',
           phone: '+91 98220 54321',
           lastLogin: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
         };
       } else {
-        // Auto-provision tenant ID for unknown email
+        // Auto-provision tenant ID for any new user id / email
         const userId = 'usr_' + cleanEmail.replace(/[^a-z0-9]/g, '_');
+        const displayName = cleanEmail.includes('@') ? cleanEmail.split('@')[0] : cleanEmail;
         user = {
           id: userId,
-          name: cleanEmail.split('@')[0].toUpperCase(),
-          email: cleanEmail,
+          name: displayName.toUpperCase(),
+          email: cleanEmail.includes('@') ? cleanEmail : `${cleanEmail}@company.in`,
           role: 'Owner',
           phone: '+91 98765 43210',
           lastLogin: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
@@ -115,7 +116,7 @@ export function LoginScreen({ onLogin, defaultEmail = 'singhbittu490@gmail.com' 
       }
 
       onLogin(user);
-    }, 400);
+    }, 350);
   };
 
   const handleRegisterSubmit = (e: React.FormEvent) => {
@@ -142,6 +143,12 @@ export function LoginScreen({ onLogin, defaultEmail = 'singhbittu490@gmail.com' 
           password: regPassword,
         });
 
+        if (rememberMe) {
+          try {
+            localStorage.setItem('smartbill_remember_user', JSON.stringify(user));
+          } catch {}
+        }
+
         onLogin(user);
       } catch (err) {
         setErrorMessage('रजिस्ट्रेशन में त्रुटि: ' + String(err));
@@ -149,58 +156,23 @@ export function LoginScreen({ onLogin, defaultEmail = 'singhbittu490@gmail.com' 
     }, 450);
   };
 
-  const handleQuickLogin = (demoUserId: string, demoEmail: string) => {
-    setEmail(demoEmail);
-    setPassword('admin123');
-    setIsLoading(true);
-
-    setTimeout(() => {
-      setIsLoading(false);
-      const registered = getRegisteredUsers();
-      const existing = registered.find((u) => u.id === demoUserId || u.email.toLowerCase() === demoEmail.toLowerCase());
-
-      const user: AuthUser = existing
-        ? {
-            id: existing.id,
-            name: existing.name,
-            email: existing.email,
-            role: existing.role,
-            phone: existing.phone,
-            lastLogin: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
-          }
-        : {
-            id: demoUserId,
-            name: demoEmail.includes('singhbittu') ? 'Bittu Singh' : 'Rajesh Sharma',
-            email: demoEmail,
-            role: 'Owner',
-            phone: '+91 98765 43210',
-            lastLogin: new Date().toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
-          };
-
-      try {
-        localStorage.setItem('smartbill_remember_user', JSON.stringify(user));
-      } catch {}
-      onLogin(user);
-    }, 300);
-  };
-
   return (
     <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-10 sm:px-6 lg:px-8 relative overflow-hidden font-sans">
       {/* Background Decorative Gradients */}
       <div className="absolute -top-40 -right-40 w-96 h-96 bg-blue-600/15 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-emerald-600/15 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -left-40 w-96 h-96 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
 
       <div className="sm:mx-auto sm:w-full sm:max-w-lg relative z-10 px-4">
         {/* Brand Header */}
         <div className="text-center mb-6">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-600 text-white shadow-xl shadow-blue-500/20 mb-3">
+          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-cyan-500 text-white shadow-xl shadow-blue-500/20 mb-3">
             <Building2 className="w-8 h-8" />
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Smart<span className="text-blue-500">Bill</span> Multi-Company Cloud
+            SmartBill<span className="text-blue-400">Solution</span>
           </h1>
           <p className="mt-1 text-xs sm:text-sm text-slate-400">
-            Isolated Company Profiles, GST Billing &amp; Secure Multi-Tenant ERP
+            Enterprise Multi-Company ERP &bull; GST Billing &amp; Invoicing Cloud
           </p>
         </div>
 
@@ -251,17 +223,17 @@ export function LoginScreen({ onLogin, defaultEmail = 'singhbittu490@gmail.com' 
             <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
                 <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                  Email Address / Username
+                  User ID / Email Address (यूजर आईडी या ईमेल)
                 </label>
                 <div className="relative">
                   <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
                   <input
                     id="input-login-email"
-                    type="email"
+                    type="text"
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="user@example.com"
+                    placeholder="Enter User ID or Email (यूजर आईडी / ईमेल दर्ज करें)"
                     className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
@@ -270,9 +242,8 @@ export function LoginScreen({ onLogin, defaultEmail = 'singhbittu490@gmail.com' 
               <div>
                 <div className="flex items-center justify-between mb-1.5">
                   <label className="block text-xs font-medium text-slate-300">
-                    Password
+                    Password (पासवर्ड)
                   </label>
-                  <span className="text-[11px] text-slate-500">Default: admin123</span>
                 </div>
                 <div className="relative">
                   <Lock className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
@@ -282,13 +253,14 @@ export function LoginScreen({ onLogin, defaultEmail = 'singhbittu490@gmail.com' 
                     required
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter password"
+                    placeholder="Enter Password (पासवर्ड दर्ज करें)"
                     className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl pl-9 pr-10 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-3 text-slate-400 hover:text-slate-200"
+                    title={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -319,52 +291,36 @@ export function LoginScreen({ onLogin, defaultEmail = 'singhbittu490@gmail.com' 
                 {isLoading ? (
                   <>
                     <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                    <span>Accessing Company Profile...</span>
+                    <span>Signing in to SmartBillSolution...</span>
                   </>
                 ) : (
                   <>
-                    <span>Sign In to Your Company</span>
+                    <span>Sign In to SmartBillSolution</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
               </button>
 
-              {/* Multi-tenant Quick Switch Demo Profiles */}
-              <div className="pt-4 mt-4 border-t border-slate-800">
-                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider text-center mb-2.5 flex items-center justify-center gap-1">
-                  <Sparkles className="w-3 h-3 text-amber-400" />
-                  <span>Test Multi-User Company Isolation:</span>
+              {/* SmartBillSolution Official Branding Section */}
+              <div className="pt-5 mt-4 border-t border-slate-800 text-center">
+                <div className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-slate-800/80 border border-slate-700 text-slate-200 shadow-sm">
+                  <Building2 className="w-4 h-4 text-blue-400" />
+                  <span className="font-extrabold text-sm tracking-wide text-white">SmartBillSolution</span>
+                  <span className="text-[10px] text-blue-300 bg-blue-500/20 px-2 py-0.5 rounded-full font-semibold">
+                    Cloud ERP
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-2.5 font-medium">
+                  SmartBillSolution &bull; GST Billing, Invoices, Stock &amp; Inventory Management
                 </p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin('usr_bittu_singh', 'singhbittu490@gmail.com')}
-                    className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-left transition-all text-xs group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-white group-hover:text-blue-400">Bittu Singh</span>
-                      <span className="text-[9px] px-1 rounded bg-blue-500/20 text-blue-300">Delhi</span>
-                    </div>
-                    <div className="text-[11px] text-blue-300 font-medium truncate mt-0.5">
-                      Smart Tech Solutions
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-mono">07AAAAA0000A1Z5</div>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleQuickLogin('usr_sharma_hardware', 'sharma@hardware.in')}
-                    className="p-2.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 border border-slate-700 text-left transition-all text-xs group"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-white group-hover:text-emerald-400">Rajesh Sharma</span>
-                      <span className="text-[9px] px-1 rounded bg-emerald-500/20 text-emerald-300">MH</span>
-                    </div>
-                    <div className="text-[11px] text-emerald-300 font-medium truncate mt-0.5">
-                      Sharma Electricals
-                    </div>
-                    <div className="text-[10px] text-slate-400 font-mono">27BBBBB1111B1Z2</div>
-                  </button>
+                <div className="flex items-center justify-center gap-3 mt-2 text-[11px] text-slate-500">
+                  <span className="flex items-center gap-1">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> 100% Isolated Data
+                  </span>
+                  <span>&bull;</span>
+                  <span>Secure User Accounts</span>
+                  <span>&bull;</span>
+                  <span>GST Ready</span>
                 </div>
               </div>
             </form>
@@ -455,7 +411,7 @@ export function LoginScreen({ onLogin, defaultEmail = 'singhbittu490@gmail.com' 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-slate-300 mb-1">
-                    Email Address *
+                    User ID / Email Address *
                   </label>
                   <div className="relative">
                     <Mail className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
@@ -508,6 +464,7 @@ export function LoginScreen({ onLogin, defaultEmail = 'singhbittu490@gmail.com' 
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200"
+                    title={showPassword ? 'Hide password' : 'Show password'}
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -539,7 +496,7 @@ export function LoginScreen({ onLogin, defaultEmail = 'singhbittu490@gmail.com' 
         {/* Feature Highlights */}
         <div className="mt-6 grid grid-cols-3 gap-2 text-center text-[11px] text-slate-400">
           <div className="p-2 rounded-lg bg-slate-900/50 border border-slate-800">
-            <span className="text-white font-medium block">Zero Leakage</span>
+            <span className="text-white font-medium block">SmartBillSolution</span>
             100% Isolated Data
           </div>
           <div className="p-2 rounded-lg bg-slate-900/50 border border-slate-800">
@@ -547,8 +504,8 @@ export function LoginScreen({ onLogin, defaultEmail = 'singhbittu490@gmail.com' 
             Your Name on Bills
           </div>
           <div className="p-2 rounded-lg bg-slate-900/50 border border-slate-800">
-            <span className="text-white font-medium block">Multi-Tenant</span>
-            Unlimited Companies
+            <span className="text-white font-medium block">Multi-Company</span>
+            Unlimited Accounts
           </div>
         </div>
       </div>

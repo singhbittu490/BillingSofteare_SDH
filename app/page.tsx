@@ -103,20 +103,20 @@ export default function SmartBillApp() {
     }
   };
 
-  // Load from localStorage asynchronously after mount to prevent SSR hydration mismatch & cascading renders
+  // Load from sessionStorage asynchronously after mount to prevent SSR hydration mismatch & cascading renders
   useEffect(() => {
     const timer = setTimeout(() => {
       try {
-        const savedUser = localStorage.getItem('smartbill_remember_user');
-        if (savedUser) {
-          const parsedUser = JSON.parse(savedUser);
+        const sessionUser = sessionStorage.getItem('smartbill_active_session');
+        if (sessionUser) {
+          const parsedUser = JSON.parse(sessionUser);
           if (parsedUser && parsedUser.id) {
             setCurrentUser(parsedUser);
             applyTenantData(parsedUser);
           }
         }
       } catch (e) {
-        console.error('Error loading saved data from localStorage:', e);
+        console.error('Error loading active session:', e);
       } finally {
         setIsMounted(true);
       }
@@ -447,8 +447,9 @@ export default function SmartBillApp() {
   };
 
   const handleLogout = () => {
-    if (confirm('क्या आप लॉगआउट करना चाहते हैं? (Do you want to log out of SmartBill?)')) {
+    if (confirm('क्या आप लॉगआउट करना चाहते हैं? (Do you want to log out of SmartBillSolution?)')) {
       try {
+        sessionStorage.removeItem('smartbill_active_session');
         localStorage.removeItem('smartbill_remember_user');
       } catch {}
       setCurrentUser(null);
@@ -463,7 +464,7 @@ export default function SmartBillApp() {
           S
         </div>
         <div className="w-6 h-6 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin" />
-        <p className="mt-3 text-xs text-slate-400 font-medium">SmartBill Portal Loading...</p>
+        <p className="mt-3 text-xs text-slate-400 font-medium">SmartBillSolution Portal Loading...</p>
       </div>
     );
   }
@@ -475,8 +476,10 @@ export default function SmartBillApp() {
         onLogin={(user) => {
           setCurrentUser(user);
           applyTenantData(user);
+          try {
+            sessionStorage.setItem('smartbill_active_session', JSON.stringify(user));
+          } catch {}
         }}
-        defaultEmail="singhbittu490@gmail.com"
       />
     );
   }

@@ -358,7 +358,7 @@ export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
                     required
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    placeholder="User ID, Email or Licence No (e.g. singhbittu490@gmail.com)"
+                    placeholder="User ID, Email or Licence No (e.g. SBS-LIC-...)"
                     className="w-full bg-slate-950/80 border border-slate-700/80 rounded-xl pl-9 pr-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
                   />
                 </div>
@@ -426,41 +426,6 @@ export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
                   </>
                 )}
               </button>
-
-              {/* Password Assistance / Quick Accounts Helper */}
-              <div className="p-3 rounded-xl bg-slate-950/60 border border-slate-800 text-xs text-slate-400 space-y-1.5">
-                <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300">
-                  <span className="flex items-center gap-1">
-                    <KeyRound className="w-3 h-3 text-amber-400" />
-                    <span>Demo Accounts &amp; Passwords:</span>
-                  </span>
-                  <span className="text-emerald-400 text-[10px]">Strict Verified</span>
-                </div>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5 text-[11px]">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('singhbittu490@gmail.com');
-                      setPassword('bittu123');
-                    }}
-                    className="text-left p-1.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 transition-colors"
-                  >
-                    <span className="font-semibold text-blue-300 block">Bittu Singh</span>
-                    <span className="font-mono text-[10px] text-slate-400">Pass: bittu123</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setEmail('sharma@hardware.in');
-                      setPassword('sharma123');
-                    }}
-                    className="text-left p-1.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-800 hover:border-slate-700 text-slate-300 transition-colors"
-                  >
-                    <span className="font-semibold text-blue-300 block">Sharma Hardware</span>
-                    <span className="font-mono text-[10px] text-slate-400">Pass: sharma123</span>
-                  </button>
-                </div>
-              </div>
 
               {/* SmartBillSolution Official Branding Section */}
               <div className="pt-4 border-t border-slate-800 text-center">

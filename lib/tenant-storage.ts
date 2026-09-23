@@ -64,7 +64,7 @@ export function getStateCodeByName(stateName: string): string {
   return found ? found.code : '27';
 }
 
-// Pre-seeded multi-tenant accounts
+// Active multi-tenant user accounts
 export const DEFAULT_TENANT_ACCOUNTS: UserAccount[] = [
   {
     id: 'usr_bittu_singh',
@@ -77,30 +77,6 @@ export const DEFAULT_TENANT_ACCOUNTS: UserAccount[] = [
     createdAt: '2026-01-15T00:00:00Z',
     lastLogin: 'Today',
     licenseNo: 'SBS-LIC-2026-9876',
-  },
-  {
-    id: 'usr_sharma_hardware',
-    name: 'Rajesh Sharma',
-    email: 'sharma@hardware.in',
-    password: 'sharma123',
-    role: 'Owner',
-    phone: '+91 98220 54321',
-    companyName: 'Sharma Electricals & Hardware',
-    createdAt: '2026-02-01T00:00:00Z',
-    lastLogin: 'Yesterday',
-    licenseNo: 'SBS-LIC-2026-5432',
-  },
-  {
-    id: 'usr_store_admin',
-    name: 'Store Manager',
-    email: 'admin@smartbill.in',
-    password: 'admin123',
-    role: 'Admin',
-    phone: '+91 98111 22334',
-    companyName: 'SmartBill Infotech',
-    createdAt: '2026-01-01T00:00:00Z',
-    lastLogin: 'Today',
-    licenseNo: 'SBS-LIC-2026-1122',
   },
 ];
 
@@ -282,7 +258,17 @@ export function getRegisteredUsers(): UserAccount[] {
     const saved = localStorage.getItem('smartbill_all_registered_users');
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        // Strip out any previous demo accounts
+        const cleaned = parsed.filter(
+          (u: UserAccount) =>
+            u.id !== 'usr_sharma_hardware' &&
+            u.id !== 'usr_store_admin' &&
+            u.email !== 'sharma@hardware.in' &&
+            u.email !== 'admin@smartbill.in'
+        );
+        if (cleaned.length > 0) return cleaned;
+      }
     }
   } catch {}
   return DEFAULT_TENANT_ACCOUNTS;

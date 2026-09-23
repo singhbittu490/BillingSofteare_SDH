@@ -29,6 +29,8 @@ export interface AuthUser {
   phone?: string;
   lastLogin: string;
   licenseNo?: string;
+  emailVerified?: boolean;
+  authProvider?: 'email' | 'google';
 }
 
 export interface Product {
@@ -70,9 +72,19 @@ export interface Supplier {
   mobile: string;
   email?: string;
   address: string;
+  city?: string;
   gstin?: string;
+  pan?: string;
   state: string;
   stateCode: string;
+  openingBalance?: number;
+  outstandingBalance?: number;
+  bankName?: string;
+  accountNumber?: string;
+  ifsc?: string;
+  ifscCode?: string;
+  upiId?: string;
+  notes?: string;
 }
 
 export interface InvoiceItem {

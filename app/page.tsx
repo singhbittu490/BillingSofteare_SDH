@@ -50,6 +50,7 @@ import {
   Pencil,
   Camera,
   Upload,
+  Truck,
 } from 'lucide-react';
 import { TaxInvoiceModal } from '@/components/TaxInvoiceModal';
 import { CreateInvoiceModal } from '@/components/CreateInvoiceModal';
@@ -59,6 +60,7 @@ import { StockAdjustModal } from '@/components/StockAdjustModal';
 import { AddCustomerModal } from '@/components/AddCustomerModal';
 import { AddExpenseModal } from '@/components/AddExpenseModal';
 import { AddPurchaseModal } from '@/components/AddPurchaseModal';
+import { AddSupplierModal } from '@/components/AddSupplierModal';
 import { LogoUploadModal } from '@/components/LogoUploadModal';
 import { LoginScreen } from '@/components/LoginScreen';
 import { CompanyProfileTab } from '@/components/CompanyProfileTab';
@@ -70,6 +72,7 @@ type NavTab =
   | 'invoices'
   | 'products'
   | 'customers'
+  | 'suppliers'
   | 'purchases'
   | 'expenses'
   | 'profile'
@@ -139,6 +142,9 @@ export default function SmartBillApp() {
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [adjustingProduct, setAdjustingProduct] = useState<Product | null>(null);
   const [isAddingCustomer, setIsAddingCustomer] = useState(false);
+  const [isAddingSupplier, setIsAddingSupplier] = useState(false);
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
+  const [supplierSearch, setSupplierSearch] = useState('');
   const [isAddingExpense, setIsAddingExpense] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
   const [isAddingPurchase, setIsAddingPurchase] = useState(false);
@@ -177,6 +183,13 @@ export default function SmartBillApp() {
   useEffect(() => {
     if (!isMounted || !currentUser) return;
     try {
+      localStorage.setItem(`smartbill_${currentUser.id}_suppliers`, JSON.stringify(suppliers));
+    } catch {}
+  }, [suppliers, isMounted, currentUser]);
+
+  useEffect(() => {
+    if (!isMounted || !currentUser) return;
+    try {
       localStorage.setItem(`smartbill_${currentUser.id}_purchases`, JSON.stringify(purchases));
     } catch {}
   }, [purchases, isMounted, currentUser]);
@@ -188,6 +201,25 @@ export default function SmartBillApp() {
     } catch {}
   }, [expenses, isMounted, currentUser]);
 
+  const handleSaveSupplier = (supplier: Supplier) => {
+    setSuppliers((prev) => {
+      const idx = prev.findIndex((s) => s.id === supplier.id);
+      if (idx >= 0) {
+        const updated = [...prev];
+        updated[idx] = supplier;
+        return updated;
+      }
+      return [supplier, ...prev];
+    });
+    setIsAddingSupplier(false);
+    setEditingSupplier(null);
+  };
+
+  const handleDeleteSupplier = (supplierId: number) => {
+    setSuppliers((prev) => prev.filter((s) => s.id !== supplierId));
+    setEditingSupplier(null);
+  };
+
   const resetAllData = () => {
     if (!currentUser) return;
     if (confirm(`Reset ${company.companyName} data back to original defaults?`)) {
@@ -196,6 +228,7 @@ export default function SmartBillApp() {
         localStorage.removeItem(`smartbill_${currentUser.id}_invoices`);
         localStorage.removeItem(`smartbill_${currentUser.id}_products`);
         localStorage.removeItem(`smartbill_${currentUser.id}_customers`);
+        localStorage.removeItem(`smartbill_${currentUser.id}_suppliers`);
         localStorage.removeItem(`smartbill_${currentUser.id}_purchases`);
         localStorage.removeItem(`smartbill_${currentUser.id}_expenses`);
       } catch {}
@@ -606,6 +639,7 @@ export default function SmartBillApp() {
             { id: 'invoices', label: `Invoices (${invoices.length})`, icon: FileText },
             { id: 'products', label: `Products & Stock (${products.length})`, icon: Package },
             { id: 'customers', label: `Customers (${customers.length})`, icon: Users },
+            { id: 'suppliers', label: `Suppliers (${suppliers.length})`, icon: Truck },
             { id: 'purchases', label: `Purchases (${purchases.length})`, icon: ShoppingBag },
             { id: 'expenses', label: `Expenses (${expenses.length})`, icon: Receipt },
             { id: 'profile', label: 'Company Profile (कंपनी)', icon: Building2 },
@@ -1249,6 +1283,321 @@ export default function SmartBillApp() {
         )}
 
         {/* ------------------------------------------------------------- */}
+        {/* TAB 4.5: SUPPLIERS (आपूर्तिकर्ता प्रबंधन) */}
+        {/* ------------------------------------------------------------- */}
+        {activeTab === 'suppliers' && (
+          <div className="space-y-4">
+            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Truck className="w-5 h-5 text-indigo-600" />
+                  <h3 className="font-bold text-sm sm:text-base text-slate-900">
+                    Suppliers &amp; Vendors Directory (आपूर्तिकर्ता)
+                  </h3>
+                </div>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Manage vendors, raw material suppliers, bank accounts &amp; purchase ledgers
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <button
+                  id="btn-add-supplier-top"
+                  onClick={() => {
+                    setEditingSupplier(null);
+                    setIsAddingSupplier(true);
+                  }}
+                  className="w-full sm:w-auto px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-1.5 active:scale-95"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>+ Add New Supplier (सप्लायर जोड़ें)</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Quick Metrics & Search Bar */}
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
+                    Total Suppliers
+                  </span>
+                  <span className="text-xl font-black text-slate-800">{suppliers.length}</span>
+                </div>
+                <div className="w-9 h-9 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center">
+                  <Truck className="w-5 h-5" />
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
+                    Outstanding Payables (देय)
+                  </span>
+                  <span className="text-xl font-black text-rose-600">
+                    {formatINR(suppliers.reduce((sum, s) => sum + (s.outstandingBalance || 0), 0))}
+                  </span>
+                </div>
+                <div className="w-9 h-9 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                  <IndianRupee className="w-5 h-5" />
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
+                    Inward Purchases
+                  </span>
+                  <span className="text-xl font-black text-emerald-600">{purchases.length}</span>
+                </div>
+                <div className="w-9 h-9 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                  <ShoppingBag className="w-5 h-5" />
+                </div>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-white border border-slate-200 shadow-xs flex items-center justify-between">
+                <div>
+                  <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block">
+                    Total Procurement
+                  </span>
+                  <span className="text-xl font-black text-blue-600">
+                    {formatINR(totalPurchasesAmount)}
+                  </span>
+                </div>
+                <div className="w-9 h-9 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                  <Receipt className="w-5 h-5" />
+                </div>
+              </div>
+            </div>
+
+            {/* Search and Filters */}
+            <div className="bg-white p-3 rounded-xl border border-slate-200 shadow-xs flex items-center gap-2">
+              <Search className="w-4 h-4 text-slate-400 shrink-0 ml-1" />
+              <input
+                type="text"
+                value={supplierSearch}
+                onChange={(e) => setSupplierSearch(e.target.value)}
+                placeholder="Search suppliers by business name, contact person, mobile, GSTIN, or city..."
+                className="w-full text-xs text-slate-800 placeholder-slate-400 focus:outline-none"
+              />
+              {supplierSearch && (
+                <button
+                  type="button"
+                  onClick={() => setSupplierSearch('')}
+                  className="text-xs text-slate-400 hover:text-slate-600 font-semibold px-2"
+                >
+                  Clear
+                </button>
+              )}
+            </div>
+
+            {/* Suppliers Cards Grid */}
+            {(() => {
+              const q = supplierSearch.toLowerCase().trim();
+              const filtered = suppliers.filter((s) => {
+                if (!q) return true;
+                return (
+                  s.name.toLowerCase().includes(q) ||
+                  (s.businessName && s.businessName.toLowerCase().includes(q)) ||
+                  (s.gstin && s.gstin.toLowerCase().includes(q)) ||
+                  (s.mobile && s.mobile.includes(q)) ||
+                  (s.email && s.email.toLowerCase().includes(q)) ||
+                  (s.city && s.city.toLowerCase().includes(q)) ||
+                  (s.state && s.state.toLowerCase().includes(q))
+                );
+              });
+
+              if (filtered.length === 0) {
+                return (
+                  <div className="bg-white p-12 rounded-xl border border-dashed border-slate-300 text-center space-y-3">
+                    <div className="w-12 h-12 rounded-full bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+                      <Truck className="w-6 h-6" />
+                    </div>
+                    <div className="text-sm font-bold text-slate-800">
+                      {supplierSearch ? 'No suppliers match your search.' : 'No suppliers registered yet.'}
+                    </div>
+                    <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                      Add your vendor and supplier details to record purchases, track inward bills, and manage vendor payments.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingSupplier(null);
+                        setIsAddingSupplier(true);
+                      }}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow transition-colors inline-flex items-center gap-1.5"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Add First Supplier</span>
+                    </button>
+                  </div>
+                );
+              }
+
+              return (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {filtered.map((s) => {
+                    const supPurchases = purchases.filter((p) => p.supplierId === s.id);
+                    const supTotalPurchased = supPurchases.reduce((acc, p) => acc + p.grandTotal, 0);
+
+                    return (
+                      <div
+                        key={s.id}
+                        className="bg-white rounded-xl border border-slate-200 shadow-xs hover:shadow-md transition-shadow p-4 flex flex-col justify-between"
+                      >
+                        <div>
+                          {/* Card Header */}
+                          <div className="flex items-start justify-between gap-2 pb-3 border-b border-slate-100">
+                            <div>
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <h4 className="font-bold text-sm sm:text-base text-slate-900">
+                                  {s.businessName || s.name}
+                                </h4>
+                                {s.gstin && (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-blue-700 border border-blue-200">
+                                    GSTIN: {s.gstin}
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-2">
+                                <span>Contact: <strong className="text-slate-700">{s.name}</strong></span>
+                                {s.state && <span>&bull; {s.city ? `${s.city}, ` : ''}{s.state} ({s.stateCode || '-'})</span>}
+                              </p>
+                            </div>
+
+                            {/* Edit & Delete Action Buttons */}
+                            <div className="flex items-center gap-1 shrink-0">
+                              <button
+                                type="button"
+                                onClick={() => setEditingSupplier(s)}
+                                className="p-1.5 rounded-lg bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200 transition-colors"
+                                title="Edit Supplier Details (सप्लायर विवरण बदलें)"
+                              >
+                                <Pencil className="w-3.5 h-3.5" />
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (
+                                    confirm(
+                                      `Are you sure you want to delete supplier "${s.businessName || s.name}"? This cannot be undone.`
+                                    )
+                                  ) {
+                                    handleDeleteSupplier(s.id);
+                                  }
+                                }}
+                                className="p-1.5 rounded-lg bg-rose-50 text-rose-700 hover:bg-rose-100 border border-rose-200 transition-colors"
+                                title="Delete Supplier (सप्लायर हटाएं)"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+
+                          {/* Contact & Banking Information */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-3 text-xs">
+                            <div className="space-y-1">
+                              <div className="flex items-center gap-1.5 text-slate-600">
+                                <PhoneCall className="w-3.5 h-3.5 text-slate-400" />
+                                <a
+                                  href={`tel:${s.mobile}`}
+                                  className="font-medium text-blue-600 hover:underline"
+                                >
+                                  {s.mobile}
+                                </a>
+                              </div>
+                              {s.email && (
+                                <div className="text-slate-500 truncate" title={s.email}>
+                                  Email: <a href={`mailto:${s.email}`} className="text-slate-700 hover:underline">{s.email}</a>
+                                </div>
+                              )}
+                              {s.address && (
+                                <div className="text-slate-500 text-[11px] line-clamp-1" title={s.address}>
+                                  Addr: {s.address}
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="space-y-1 bg-slate-50 p-2 rounded-lg border border-slate-100">
+                              <div className="text-[11px] font-semibold text-slate-600">
+                                Bank / Payment Details:
+                              </div>
+                              {s.bankName || s.accountNumber ? (
+                                <div className="text-[11px] text-slate-600 space-y-0.5 font-mono">
+                                  {s.bankName && <div>{s.bankName}</div>}
+                                  {s.accountNumber && <div>A/C: {s.accountNumber}</div>}
+                                  {s.ifscCode && <div>IFSC: {s.ifscCode}</div>}
+                                </div>
+                              ) : s.upiId ? (
+                                <div className="text-[11px] text-slate-600 font-mono">
+                                  UPI: {s.upiId}
+                                </div>
+                              ) : (
+                                <div className="text-[11px] text-slate-400 italic">No bank info added</div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Card Footer: Financial Balance & Quick Actions */}
+                        <div className="mt-4 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2 text-xs">
+                          <div>
+                            <span className="text-[11px] text-slate-500 block">Outstanding Payable:</span>
+                            <span
+                              className={`font-black text-sm ${(s.outstandingBalance || 0) > 0 ? 'text-rose-600' : 'text-emerald-600'}`}
+                            >
+                              {formatINR(s.outstandingBalance || 0)}
+                            </span>
+                            {supTotalPurchased > 0 && (
+                              <span className="text-[10px] text-slate-400 ml-2">
+                                (Purchased: {formatINR(supTotalPurchased)})
+                              </span>
+                            )}
+                          </div>
+
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            {s.mobile && (
+                              <a
+                                href={`https://wa.me/91${s.mobile.replace(/[^0-9]/g, '')}?text=${encodeURIComponent(
+                                  `Hello ${s.name}, from ${company.companyName}. Regarding our supply order and ledger account.`
+                                )}`}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="px-2.5 py-1 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200 rounded-lg font-semibold text-xs flex items-center gap-1 transition-colors"
+                              >
+                                <Share2 className="w-3 h-3" />
+                                <span>WhatsApp</span>
+                              </a>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setIsAddingPurchase(true);
+                              }}
+                              className="px-2.5 py-1 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 rounded-lg font-semibold text-xs flex items-center gap-1 transition-colors"
+                            >
+                              <ShoppingBag className="w-3 h-3" />
+                              <span>+ Inward Bill</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setEditingSupplier(s)}
+                              className="px-2.5 py-1 bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300 rounded-lg font-semibold text-xs transition-colors"
+                            >
+                              Edit
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              );
+            })()}
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
         {/* TAB 5: PURCHASES */}
         {/* ------------------------------------------------------------- */}
         {activeTab === 'purchases' && (
@@ -1671,6 +2020,18 @@ export default function SmartBillApp() {
           }}
           onSave={handleSavePurchase}
           onDelete={handleDeletePurchase}
+        />
+      )}
+
+      {(isAddingSupplier || editingSupplier) && (
+        <AddSupplierModal
+          initialSupplier={editingSupplier || undefined}
+          onClose={() => {
+            setIsAddingSupplier(false);
+            setEditingSupplier(null);
+          }}
+          onSave={handleSaveSupplier}
+          onDelete={handleDeleteSupplier}
         />
       )}
 

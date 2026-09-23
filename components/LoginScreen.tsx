@@ -38,11 +38,12 @@ import {
 interface LoginScreenProps {
   onLogin: (user: AuthUser) => void;
   defaultEmail?: string;
+  onOpenCustomerPortal?: () => void;
 }
 
-export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
+export function LoginScreen({ onLogin, defaultEmail = '', onOpenCustomerPortal }: LoginScreenProps) {
   const [mode, setMode] = useState<'login' | 'register'>('login');
-  const [email, setEmail] = useState(defaultEmail || 'singhbittu490@gmail.com');
+  const [email, setEmail] = useState(defaultEmail || '');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -223,8 +224,8 @@ export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
 
     setTimeout(() => {
       setIsLoading(false);
-      const emailToUse = targetEmail || 'singhbittu490@gmail.com';
-      const nameToUse = targetName || (emailToUse.includes('bittu') ? 'Bittu Singh' : emailToUse.split('@')[0]);
+      const emailToUse = targetEmail || 'user@example.com';
+      const nameToUse = targetName || (emailToUse.includes('@') ? emailToUse.split('@')[0] : 'Authorized User');
 
       const { user } = loginWithGoogleAccount({
         email: emailToUse,
@@ -263,6 +264,28 @@ export function LoginScreen({ onLogin, defaultEmail = '' }: LoginScreenProps) {
 
         {/* Card Container */}
         <div className="bg-slate-900/90 border border-slate-800 rounded-2xl shadow-2xl backdrop-blur-xl p-6 sm:p-8">
+          {onOpenCustomerPortal && (
+            <div className="mb-5 p-3 rounded-xl bg-gradient-to-r from-blue-900/60 to-indigo-900/60 border border-blue-500/40 flex items-center justify-between">
+              <div className="flex items-center gap-2 text-left">
+                <div className="w-8 h-8 rounded-lg bg-blue-600/30 border border-blue-400/40 flex items-center justify-center text-blue-300">
+                  <ShieldCheck className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white">Customer Portal (ग्राहक पोर्टल)</div>
+                  <div className="text-[10px] text-blue-200">Register &amp; Login with Mobile OTP</div>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={onOpenCustomerPortal}
+                className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition-all shadow-sm flex items-center gap-1 active:scale-95 cursor-pointer"
+              >
+                <span>Open Portal</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
           {/* Mode Switch Tabs */}
           <div className="flex bg-slate-800/80 p-1 rounded-xl mb-6 border border-slate-700/50">
             <button

@@ -1,0 +1,14 @@
+{
+  "sequences": {
+    "customer_id": 100,
+    "customer_code_seq": 1,
+    "otp_id": 0,
+    "reset_id": 0,
+    "audit_id": 0
+  },
+  "customers": [],
+  "otp_verifications": [],
+  "password_reset_tokens": [],
+  "sessions": [],
+  "audit_logs": []
+}

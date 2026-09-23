@@ -64,6 +64,8 @@ import { AddSupplierModal } from '@/components/AddSupplierModal';
 import { LogoUploadModal } from '@/components/LogoUploadModal';
 import { LoginScreen } from '@/components/LoginScreen';
 import { CompanyProfileTab } from '@/components/CompanyProfileTab';
+import { CustomerPortalView } from '@/components/customer/CustomerPortalView';
+import { AdminCustomerPanel } from '@/components/customer/AdminCustomerPanel';
 import { downloadInvoicePDFDirect, openInvoicePDFInNewTab } from '@/lib/invoice-pdf';
 import { loadIsolatedTenantData } from '@/lib/tenant-storage';
 
@@ -76,7 +78,9 @@ type NavTab =
   | 'purchases'
   | 'expenses'
   | 'profile'
-  | 'reports';
+  | 'reports'
+  | 'customer-portal'
+  | 'customer-admin';
 
 export default function SmartBillApp() {
   // Core Data States initialized consistently for SSR
@@ -130,6 +134,7 @@ export default function SmartBillApp() {
 
   // UI state
   const [activeTab, setActiveTab] = useState<NavTab>('dashboard');
+  const [showCustomerPortal, setShowCustomerPortal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [invoiceFilter, setInvoiceFilter] = useState<'all' | 'Paid' | 'Partially Paid' | 'Unpaid'>('all');
 
@@ -502,10 +507,16 @@ export default function SmartBillApp() {
     );
   }
 
+  // Customer Portal Screen override (if user toggles to customer auth portal from login)
+  if (showCustomerPortal) {
+    return <CustomerPortalView onBackToErp={() => setShowCustomerPortal(false)} />;
+  }
+
   // Authentication Gate: User MUST login to access dashboard
   if (!currentUser) {
     return (
       <LoginScreen
+        onOpenCustomerPortal={() => setShowCustomerPortal(true)}
         onLogin={(user) => {
           setCurrentUser(user);
           applyTenantData(user);
@@ -644,6 +655,8 @@ export default function SmartBillApp() {
             { id: 'expenses', label: `Expenses (${expenses.length})`, icon: Receipt },
             { id: 'profile', label: 'Company Profile (कंपनी)', icon: Building2 },
             { id: 'reports', label: 'GST & P&L Reports', icon: BarChart3 },
+            { id: 'customer-portal', label: 'Customer Portal (OTP Auth)', icon: Users },
+            { id: 'customer-admin', label: 'Customer Admin (Gov)', icon: Users },
           ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -1896,6 +1909,24 @@ export default function SmartBillApp() {
               } catch {}
             }}
           />
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* TAB: CUSTOMER PORTAL (REGISTRATION, OTP & DASHBOARD) */}
+        {/* ------------------------------------------------------------- */}
+        {activeTab === 'customer-portal' && (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6">
+            <CustomerPortalView onBackToErp={() => setActiveTab('dashboard')} />
+          </div>
+        )}
+
+        {/* ------------------------------------------------------------- */}
+        {/* TAB: CUSTOMER ADMIN MANAGEMENT */}
+        {/* ------------------------------------------------------------- */}
+        {activeTab === 'customer-admin' && (
+          <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden p-6">
+            <AdminCustomerPanel />
+          </div>
         )}
 
       </main>
